@@ -4,17 +4,14 @@ import os
 import sys
 import train
 import utils
-import inference
+import evaluation
+import vocab_utils
 
 
 def add_arguments(parser):
     parser.register("type", "bool", lambda v: v.lower() == "true")
 
     # Data
-    parser.add_argument("--unk_symbol", type=str, default="UNK",
-                        help="Unknown symbol")
-    parser.add_argument("--pad_symbol", type=str, default="PAD",
-                        help="Padding symbol")
     parser.add_argument("--train_input_path", type=str, default=None,
                         help="Input file path.")
     parser.add_argument("--train_target_path", type=str, default=None,
@@ -32,7 +29,10 @@ def add_arguments(parser):
 
     # Vocab
     parser.add_argument("--vocab_path", type=str, default=None, help="Vocabulary file path.")
-    parser.add_argument("--vocab_size", type=int, default=None, help="Vocabulary size.")
+    parser.add_argument("--unk", type=str, default="<unk>",
+                        help="Unknown symbol")
+    parser.add_argument("--pad", type=str, default="<pad>",
+                        help="Padding symbol")
 
     # Input sequence max length
     parser.add_argument("--input_max_len", type=int, default=50,
@@ -54,6 +54,8 @@ def add_arguments(parser):
     parser.add_argument("--n_classes", type=int, default=None, help="Number of output classes.")
     parser.add_argument("--forget_bias", type=float, default=1.0,
                         help="Forget bias for BasicLSTMCell.")
+    parser.add_argument("--emb_size", type=int, default=32, help="Input embedding size.")
+    parser.add_argument("--input_emb_trainable", type=bool, default=True, help="Train embedding layer weights.")
 
     # training
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size.")
@@ -87,17 +89,17 @@ def add_arguments(parser):
     parser.add_argument("--log_device_placement", type="bool", nargs="?",
                         const=True, default=False, help="Debug GPU allocation.")
 
-    # Inference
-    parser.add_argument("--inference_output_folder", type=str, default=None,
-                        help="Output folder to save inference data.")
+    # Evaluation/Prediction
+    parser.add_argument("--eval_output_folder", type=str, default=None,
+                        help="Output folder to save evaluation data.")
     parser.add_argument("--ckpt", type=str, default=None,
                         help="Checkpoint file.")
-    parser.add_argument("--infer_sample", type=int, default=10,
-                        help="Sample size to perform inference.")
-    parser.add_argument("--infer_batch_size", type=int, default=32,
-                        help="Batch size for inference mode.")
-    parser.add_argument("--infer_input_path", type=str, default=None,
-                        help="Input file path to perform inference.")
+    parser.add_argument("--eval_batch_size", type=int, default=32,
+                        help="Batch size for evaluation mode.")
+    parser.add_argument("--eval_input_path", type=str, default=None,
+                        help="Input file path to perform evaluation and/or prediction.")
+    parser.add_argument("--eval_target_path", type=str, default=None,
+                        help="Output file path to perform evaluation and prediction.")
 
 
 def create_hparams(flags):
@@ -112,7 +114,8 @@ def create_hparams(flags):
         hparams_path=flags.hparams_path,
         # Vocab
         vocab_path=flags.vocab_path,
-        vocab_size=flags.vocab_size,
+        unk=flags.unk,
+        pad=flags.pad,
         # Input sequence max length
         input_max_len=flags.input_max_len,
         # network
@@ -126,6 +129,8 @@ def create_hparams(flags):
         n_classes=flags.n_classes,
         forget_bias=flags.forget_bias,
         unit_type=flags.unit_type,
+        input_emb_size=flags.emb_size,
+        input_emb_trainable=flags.input_emb_trainable,
         # training
         batch_size=flags.batch_size,
         num_epochs=flags.num_epochs,
@@ -138,16 +143,28 @@ def create_hparams(flags):
         decay_steps=flags.decay_steps,
         decay_factor=flags.decay_factor,
         max_gradient_norm=flags.max_gradient_norm,
-        # inference
-        inference_output_folder=flags.inference_output_folder,
+        # evaluation/prediction
+        eval_output_folder=flags.eval_output_folder,
         ckpt=flags.ckpt,
-        infer_input_path=flags.infer_input_path,
-        infer_sample=flags.infer_sample,
-        infer_batch_size=flags.infer_batch_size,
+        eval_input_path=flags.eval_input_path,
+        eval_target_path=flags.eval_target_path,
+        eval_batch_size=flags.eval_batch_size,
         # Other
         random_seed=flags.random_seed,
         log_device_placement=flags.log_device_placement,
+        gpu=flags.gpu
     )
+
+
+def extend_hparams(hparams):
+    hparams.add_hparam("input_emb_pretrain", hparams.input_emb_file is not None)
+    vocab_size, vocab_path = vocab_utils.check_vocab(hparams.vocab_path, hparams.out_dir,
+                                                     unk=hparams.unk, pad=hparams.pad)
+    hparams.add_hparam("vocab_size",vocab_size)
+    hparams.set_hparam("vocab_path",vocab_path)
+    if not tf.gfile.Exists(hparams.out_dir):
+        tf.gfile.MakeDirs(hparams.out_dir)
+    return hparams
 
 
 def create_or_load_hparams(out_dir, default_hparams, flags):
@@ -157,7 +174,7 @@ def create_or_load_hparams(out_dir, default_hparams, flags):
         hparams = default_hparams
         hparams = utils.maybe_parse_standard_hparams(
             hparams, flags.hparams_path)
-        hparams.add_hparam("input_emb_pretrain", hparams.input_emb_file is not None)
+        hparams = extend_hparams(hparams)
     else:
         #ensure that the loaded hparams and the command line hparams are compatible. If not, the command line hparams are overwritten!
         hparams = utils.ensure_compatible_hparams(hparams, default_hparams, flags)
@@ -166,25 +183,26 @@ def create_or_load_hparams(out_dir, default_hparams, flags):
     utils.save_hparams(out_dir, hparams)
 
     # Print HParams
+    print("Print hyperparameters:")
     utils.print_hparams(hparams)
     return hparams
 
 
-def run_main(flags, default_hparams, train_fn, inference_fn):
+def run_main(flags, default_hparams, train_fn, evaluation_fn):
     out_dir = flags.out_dir
     if not tf.gfile.Exists(out_dir): tf.gfile.MakeDirs(out_dir)
     hparams = create_or_load_hparams(out_dir, default_hparams, flags)
     # restrict tensoflow to run only in the specified gpu
     os.environ["CUDA_VISIBLE_DEVICES"] = str(hparams.gpu)
-    # if there is an inference output folder in the command line arguments
-    # we proceed with inference based on an existing model. Otherwise, we train a new model.
-    if FLAGS.inference_output_folder:
-        # Inference
-        trans_file = FLAGS.inference_output_folder
+    # if there is an evaluation output folder in the command line arguments
+    # we proceed with evaluation based on an existing model. Otherwise, we train a new model.
+    if FLAGS.eval_output_folder:
+        # Evaluation
+        hparams.set_hparam("batch_size",hparams.eval_batch_size)
         ckpt = FLAGS.ckpt
         if not ckpt:
             ckpt = tf.train.latest_checkpoint(out_dir)
-        inference_fn(ckpt,trans_file,hparams)
+        evaluation_fn(hparams, ckpt)
     else:
         train_fn(hparams)
 
@@ -193,8 +211,8 @@ def main(unused_argv):
     # create hparams from command line arguments
     default_hparams = create_hparams(FLAGS)
     train_fn = train.train
-    inference_fn = inference.inference
-    run_main(FLAGS, default_hparams, train_fn, inference_fn)
+    evaluation_fn = evaluation.evaluate
+    run_main(FLAGS, default_hparams, train_fn, evaluation_fn)
 
 
 if __name__ == '__main__':

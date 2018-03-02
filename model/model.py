@@ -10,8 +10,8 @@ class RNN(object):
         self.vocab_size = hparams.vocab_size
         self.input_sequence_length = iterator.input_sequence_length
         self.mode = mode
-        self.inputs = iterator.inputs
-        self.targets = iterator.targets
+        self.inputs = iterator.input
+        self.targets = iterator.target
         self.input_vocab_table = input_vocab_table
         self.reverse_input_vocab_table = reverse_input_vocab_table
         self.input_emb_pretrain = hparams.input_emb_pretrain
@@ -29,17 +29,20 @@ class RNN(object):
 
         # build graph of main rnn model
         res = self.build_graph(hparams)
-
         if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
             self.train_loss = res[1]
         elif self.mode == tf.contrib.learn.ModeKeys.EVAL:
             self.eval_loss=res[1]
-        elif self.mode == tf.contrib.learn.ModeKeys.INFER:
-            pass
-
-            ## Learning rate
+        if self.mode != tf.contrib.learn.ModeKeys.TRAIN:
+            # Generate predictions (for INFER and EVAL mode)
+            self.logits = res[0]
+            self.predictions = {
+                    "classes": tf.argmax(input=tf.nn.softmax(self.logits), axis=1),
+                    "probabilities": tf.nn.softmax(self.logits)
+                }
+        ## Learning rate
         print("  start_decay_step=%d, learning_rate=%g, decay_steps %d,"
-                  "decay_factor %g" % (hparams.start_decay_step, hparams.learning_rate,
+                  " decay_factor %g" % (hparams.start_decay_step, hparams.learning_rate,
                                        hparams.decay_steps, hparams.decay_factor))
         self.global_step = tf.Variable(0, trainable=False)
         params = tf.trainable_variables()
@@ -78,13 +81,17 @@ class RNN(object):
                 tf.summary.scalar("lr", self.learning_rate),
                 tf.summary.scalar("train_loss", self.train_loss),] + grad_norm_summary
             )
-
-            #Saver. As argument, we give the variables that are going to be saved and restored.
-            self.saver = tf.train.Saver(tf.global_variables())
+        #Saver. As argument, we give the variables that are going to be saved and restored.
+        self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=50)
         # print trainable params
-        print("Trainable params:")
-        for param in params:
-            print(" %s, %s, %s" % (param.name, str(param.get_shape()), param.op.device))
+        # Print trainable variables
+        if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
+            print("# Trainable variables")
+            for param in params:
+                print("  %s, %s" % (param.name, str(param.get_shape())))
+            import numpy as np
+            total_params = np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
+            print(total_params)
 
 
     def build_graph(self, hparams):
@@ -98,12 +105,12 @@ class RNN(object):
                 loss = None
             else:
                 loss = self.compute_loss(logits)
-        return logits,loss
+        return logits, loss
 
 
     def _build_output_layer(self, hparams, rnn_outputs):
         with tf.variable_scope("output_layer"):
-            out_layer = tf.python.layers.Dense(hparams.n_classes, use_bias=True, name="output_layer")
+            out_layer = tf.layers.Dense(hparams.n_classes, use_bias=False, name="output_layer")
             logits = out_layer(rnn_outputs)
         return logits
 
@@ -114,7 +121,7 @@ class RNN(object):
             self.inputs=tf.transpose(self.inputs)
 
         emb_inp = tf.nn.embedding_lookup(self.input_embedding, self.inputs)
-        last_hidden_sates =[]
+        last_hidden_sate =[]
         # RNN outputs: [max_time, batch_size, num_units]
         with tf.variable_scope("rnn") as scope:
             dtype=scope.dtype
@@ -123,7 +130,7 @@ class RNN(object):
                 cell = model_helper.create_rnn_cell(hparams.unit_type, hparams.num_units, hparams.num_layers,
                                                     hparams.forget_bias, hparams.in_to_hidden_dropout, self.mode)
                 # encoder_state --> a Tensor of shape `[batch_size, cell.state_size]` or a list of such Tensors for many layers
-                _, last_hidden_sates = tf.nn.dynamic_rnn(cell, emb_inp,
+                _, last_hidden_sate = tf.nn.dynamic_rnn(cell, emb_inp,
                                                          dtype=dtype,
                                                          sequence_length=self.input_sequence_length,
                                                          time_major=self.time_major)
@@ -134,19 +141,19 @@ class RNN(object):
                 # if the encoder has 1 layer per bi-rnn, it means that it has 1 fwd and 1 bwd layers -> in total it has 2 layers.
                 # and every fwd and bwd layer has enc_units each -> in total 2*enc_units
                 if num_bi_layers == 1:
-                    last_hidden_sates = bi_last_hidden_state
+                    last_hidden_sate = bi_last_hidden_state
                 else:
                     # alternatively concat forward and backward states
-                    last_hidden_sates = []
+                    last_hidden_sate = []
                     for layer_id in range(num_bi_layers):
                         # bi_encoder_state[0] are all the enc_layers/2 fwd states.
-                        last_hidden_sates.append(bi_last_hidden_state[0][layer_id])  # forward
+                        last_hidden_sate.append(bi_last_hidden_state[0][layer_id])  # forward
                         # bi_encoder_state[1] are all the enc_layers/2 bwd states.
-                        last_hidden_sates.append(bi_last_hidden_state[1][layer_id])  # backward
-                        last_hidden_sates = tuple(last_hidden_sates)
+                        last_hidden_sate.append(bi_last_hidden_state[1][layer_id])  # backward
+                        last_hidden_sate = tuple(last_hidden_sate)
             else:
                 raise ValueError("Unknown rnn type: %s" % hparams.rnn_type)
-        return last_hidden_sates
+        return last_hidden_sate
 
     def _build_bidirectional_rnn(self,inputs,dtype,hparams,num_bi_layers):
         # Construct forward and backward cells.
@@ -171,12 +178,16 @@ class RNN(object):
 
         # return fw and bw outputs,i.e., ([h1_fw;h1_bw],...,[hT_fw;hT_bw]) concatenated.
         return tf.concat(bi_outputs,-1),bi_state
+
+
     def compute_loss(self, logits):
-        crossent=tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.targets, logits=logits)
-        target_weights= tf.sequence_mask(self.input_sequence_length, dtype=logits.dtype)
-        loss = tf.reduce_sum(
-            crossent * target_weights)/ tf.to_float(self.batch_size)
+        target_output = self.targets
+        if self.time_major:
+            target_output = tf.transpose(target_output)
+        crossent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=target_output, logits=logits)
+        loss = tf.reduce_sum(crossent)/tf.to_float(self.batch_size)
         return loss
+
 
     def train(self, sess):
         assert self.mode == tf.contrib.learn.ModeKeys.TRAIN
@@ -185,12 +196,13 @@ class RNN(object):
                         self.train_summary,
                         self.global_step,
                         self.learning_rate,
-                        self.batch_size])
+                        self.batch_size,tf.transpose(self.inputs), self.targets])
 
     def eval(self, sess):
         assert self.mode == tf.contrib.learn.ModeKeys.EVAL
         return sess.run([self.eval_loss,self.batch_size])
 
-    def infer(self, sess):
+
+    def predict(self, sess):
         assert self.mode == tf.contrib.learn.ModeKeys.INFER
-        return sess.run()
+        return sess.run(self.predictions)

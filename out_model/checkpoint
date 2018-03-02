@@ -1,0 +1,8 @@
+model_checkpoint_path: "rnn.ckpt-6"
+all_model_checkpoint_paths: "rnn.ckpt-0"
+all_model_checkpoint_paths: "rnn.ckpt-1"
+all_model_checkpoint_paths: "rnn.ckpt-2"
+all_model_checkpoint_paths: "rnn.ckpt-3"
+all_model_checkpoint_paths: "rnn.ckpt-4"
+all_model_checkpoint_paths: "rnn.ckpt-5"
+all_model_checkpoint_paths: "rnn.ckpt-6"

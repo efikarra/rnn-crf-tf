@@ -2,49 +2,65 @@ import collections
 import tensorflow as tf
 import time
 import iterator_utils
+import vocab_utils
 
 
-class Model(collections.namedtuple("TrainModel",("graph", "model", "iterator"))):
+class TrainModel(collections.namedtuple("TrainModel",("graph", "model", "iterator"))):
     pass
 
-def create_train_eval_model(model_creator, hparams, input_path, target_path, mode):
+
+class EvalModel(collections.namedtuple("EvalModel",("graph", "model", "input_file_placeholder", "output_file_placeholder", "iterator"))):
+    pass
+
+
+class InferModel(collections.namedtuple("EvalModel",("graph", "model", "input_file_placeholder", "iterator"))):
+    pass
+
+
+def create_train_model(model_creator, hparams, input_path, target_path, mode):
     graph = tf.Graph()
     with graph.as_default():
-        input_vocab_table = tf.contrib.lookup.index_table_from_file(hparams.vocab_path, default_value=hparams.unk_id)
+        input_vocab_table = vocab_utils.create_vocab_table(hparams.vocab_path)
         input_dataset = tf.contrib.data.TextLineDataset(input_path)
         output_dataset = tf.contrib.data.TextLineDataset(target_path)
         iterator = iterator_utils.get_iterator(input_dataset, output_dataset, input_vocab_table,
                                                batch_size=hparams.batch_size, random_seed=hparams.random_seed,
-                                               input_max_len=hparams.input_max_length)
-        model = model_creator(hparams,mode,iterator,input_vocab_table,hparams.input_emb_pretrain)
-        return Model(graph, model, iterator)
+                                               pad=hparams.pad, input_max_len=hparams.input_max_len)
+        model = model_creator(hparams, mode, iterator, input_vocab_table=input_vocab_table, reverse_input_vocab_table=None)
+        return TrainModel(graph, model, iterator)
 
-def create_infer_model(model_creator, hparams):
-    """Create inference model."""
+def create_eval_model(model_creator, hparams, mode):
     graph = tf.Graph()
-
     with graph.as_default():
-        input_vocab_table = tf.contrib.lookup.index_table_from_file(hparams.vocab_path, default_value=hparams.unk_id)
-        reverse_input_vocab_table = tf.contrib.lookup.index_to_string_table_from_file(
-            hparams.vocab_path,default_value=hparams.unk_id)
-        batch_size_placeholder = tf.placeholder(shape=[],dtype=tf.int64)
+        # create a table to map words to vocab ids.
+        input_vocab_table = vocab_utils.create_vocab_table(hparams.vocab_path)
+        # define a placeholder for the input dataset.
+        # we will dynamically initialize this placeholder with a file name during validation.
+        # The reason for this is that during validation, we may want to evaluate our trained model on different datasets.
+        input_file_placeholder= tf.placeholder(shape=(),dtype=tf.string)
+        input_dataset = tf.contrib.data.TextLineDataset(input_file_placeholder)
+        output_file_placeholder= tf.placeholder(shape=(), dtype=tf.string)
+        output_dataset = tf.contrib.data.TextLineDataset(output_file_placeholder)
 
-        src_placeholder = tf.placeholder(shape=[None],dtype=tf.string)
-        src_dataset = tf.contrib.data.Dataset.from_tensor_slices(
-                src_placeholder)
-    #     iterator = iterator_utils.get_iterator_infer(input_dataset, input_vocab_table, batch_size, input_max_len=None)
-    #
-    #     model = model_creator(hparams,iterator=iterator,mode=tf.contrib.learn.ModeKeys.INFER,
-    #                           input_vocab_table=input_vocab_table,
-    #                           reverse_input_vocab_table=reverse_input_vocab_table,
-    #                           input_emb_pretrain=hparams.input_emb_pretrain)
-    #
-    # return InferModel(
-    #         graph=graph,
-    #         model=model,
-    #         src_placeholder=src_placeholder,
-    #         batch_size_placeholder=batch_size_placeholder,
-    #         iterator=iterator)
+        iterator = iterator_utils.get_iterator(input_dataset, output_dataset, input_vocab_table,
+                                               batch_size=hparams.eval_batch_size, random_seed=hparams.random_seed,
+                                               pad=hparams.pad, input_max_len=hparams.input_max_len)
+        model = model_creator(hparams, mode, iterator, input_vocab_table=input_vocab_table, reverse_input_vocab_table=None)
+        return EvalModel(graph, model, input_file_placeholder, output_file_placeholder, iterator)
+
+
+def create_infer_model(model_creator, hparams, mode):
+    graph = tf.Graph()
+    with graph.as_default():
+        input_vocab_table = vocab_utils.create_vocab_table(hparams.vocab_path)
+        input_file_placeholder= tf.placeholder(shape=(),dtype=tf.string)
+        input_dataset = tf.contrib.data.TextLineDataset(input_file_placeholder)
+
+        iterator = iterator_utils.get_iterator_infer(input_dataset, input_vocab_table,
+                                               batch_size=hparams.eval_batch_size, random_seed=hparams.random_seed,
+                                               pad=hparams.pad, input_max_len=hparams.input_max_len)
+        model = model_creator(hparams, mode, iterator, input_vocab_table=input_vocab_table, reverse_input_vocab_table=None)
+        return InferModel(graph, model, input_file_placeholder, iterator)
 
 
 def create_embeddings(vocab_size,emb_size,emb_trainable,emb_pretrain,dtype=tf.float32):
@@ -118,19 +134,19 @@ def gradient_clip(gradients, max_gradient_norm):
     return clipped_gradients, gradient_norm_summary, gradient_norm
 
 
-def compute_loss(model, session):
+def run_batch_evaluation(model, session):
     batch_count=0.0
-    val_loss=0.0
+    loss=0.0
     while True:
         try:
-            batch_loss=model.eval(session)
-            val_loss+=batch_loss
+            batch_loss,batch_size=model.eval(session)
+            loss+=batch_loss
             batch_count+=1
         except tf.errors.OutOfRangeError:
             break
 
-    val_loss /= batch_count
-    return val_loss
+    loss /= batch_count
+    return loss
 
 
 def load_model(model, session, name, ckpt):
@@ -139,6 +155,7 @@ def load_model(model, session, name, ckpt):
     session.run(tf.tables_initializer())
     model.saver.restore(session, ckpt)
     print("loaded %s model parameters from %s, time %.2fs" % (name, ckpt, time.time()-start_time))
+    return model
 
 
 def create_or_load_model(model, session, name, model_dir, input_emb_weights=None):

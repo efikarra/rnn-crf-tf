@@ -5,6 +5,7 @@ import utils
 import model_helper
 import model
 import numpy as np
+import evaluation
 
 def train(hparams):
     num_epochs = hparams.num_epochs
@@ -18,18 +19,15 @@ def train(hparams):
     if hparams.model_architecture == "rnn-model": model_creator = model.RNN
     else: raise ValueError("Unknown model architecture. Only simple_rnn is supported so far.")
     #create 3  models in 3 graphs for train, evaluation and inference, with 3 sessions sharing the same variables.
-    train_model = model_helper.create_train_eval_model(model_creator, hparams, hparams.train_input_path,
-                                                       hparams.train_target_path, mode=tf.contrib.learn.ModeKeys.TRAIN)
-    eval_model = model_helper.create_train_eval_model(model_creator, hparams, hparams.val_input_path,
-                                                      hparams.val_target_path, tf.contrib.learn.ModeKeys.EVAL)
-    infer_model = model_helper.create_infer_model(model_creator, hparams)
+    train_model = model_helper.create_train_model(model_creator, hparams, hparams.train_input_path,
+                                                        hparams.train_target_path, mode=tf.contrib.learn.ModeKeys.TRAIN)
+    eval_model = model_helper.create_eval_model(model_creator, hparams, tf.contrib.learn.ModeKeys.EVAL)
 
     # some configuration of gpus logging
     config_proto = utils.get_config_proto(log_device_placement=log_device_placement, allow_soft_placement=True)
-    # create three separate sessions for trai/eval/infer
+    # create two separate sessions for trai/eval
     train_sess=tf.Session(config=config_proto, graph=train_model.graph)
     eval_sess=tf.Session(config=config_proto, graph=eval_model.graph)
-    infer_sess=tf.Session(config=config_proto, graph=infer_model.graph)
 
     # create a new train model by initializing all graph variables
     # or load a model from the latest checkpoint within the model_dir.
@@ -40,9 +38,11 @@ def train(hparams):
     summary_writer = tf.summary.FileWriter(os.path.join(out_dir,summary_name),train_model.graph)
 
     #run first evaluation before starting training
-    val_loss = run_evaluation(eval_model, eval_sess, model_dir, summary_writer)
-    print("Epoch 0: dev los: %.3f" % val_loss)
-
+    dev_loss = run_evaluation(eval_model, eval_sess, model_dir, hparams.val_input_path, hparams.val_target_path, input_emb_weights, summary_writer)
+    train_loss = run_evaluation(eval_model, eval_sess, model_dir, hparams.train_input_path, hparams.train_target_path,
+                              input_emb_weights, summary_writer)
+    print("Dev loss before training: %.3f" % dev_loss)
+    print("Train loss before training: %.3f" % train_loss)
     # Start training
     start_train_time=time.time()
     epoch_time=0.0
@@ -53,7 +53,7 @@ def train(hparams):
     train_sess.run(train_model.iterator.initializer)
     #keep lists of train/val losses for all epochs
     train_losses=[]
-    val_losses=[]
+    dev_losses=[]
     #train the model for num_epochs. One epoch means a pass through the whole train dataset, i.e., through all the batches.
     for epoch in range(num_epochs):
         #go through all batches for the current epoch
@@ -61,7 +61,7 @@ def train(hparams):
             start_batch_time=0.0
             try:
                 step_result = loaded_train_model.train(train_sess)
-                (batch_loss, batch_summary)=step_result
+                (_, batch_loss, batch_summary, global_step, learning_rate, batch_size, inputs, targets)=step_result
                 epoch_time += (time.time()-start_batch_time)
                 epoch_loss += batch_loss
                 batch_count += 1
@@ -75,34 +75,37 @@ def train(hparams):
         epoch_time /= batch_count
         #print results if the current epoch is a print results epoch
         if (epoch +1) % num_ckpt_epochs ==0:
-            print("Saving checkpoint: ")
+            print("Saving checkpoint...")
             model_helper.add_summary(summary_writer, "train_loss", epoch_loss)
             # save checkpoint. global_step parameter is optional and is appended to the name of the checkpoint.
             loaded_train_model.saver.save(train_sess, os.path.join(out_dir, "rnn.ckpt"), global_step=epoch)
 
-            print("Validation results: ")
-            val_loss = run_evaluation(eval_model, eval_sess, model_dir, summary_writer)
+            print("Results: ")
+            dev_loss = run_evaluation(eval_model, eval_sess, model_dir, hparams.val_input_path, hparams.val_target_path, input_emb_weights, summary_writer)
             print(" epoch %d lr %g "
-                  "train_loss %.3f, val_loss %.3f" %
-                  (epoch, loaded_train_model.learning_rate.eval(session=train_sess),epoch_loss,val_loss))
+                  "train_loss %.3f, dev_loss %.3f" %
+                  (epoch, loaded_train_model.learning_rate.eval(session=train_sess), epoch_loss, dev_loss))
             train_losses.append(epoch_loss)
-            val_losses.append(val_loss)
+            dev_losses.append(dev_loss)
 
     # save final model
     loaded_train_model.saver.save(train_sess,os.path.join(out_dir,"rnn.ckpt"), global_step=num_epochs)
-    print("Done training in %.2fK" % time.time() - start_train_time )
-    min_val_loss = np.min(val_losses)
-    min_val_idx = np.argmin(val_losses)
-    print("Min val loss: %.3f at epoch %d"%(min_val_loss,min_val_idx[0]))
+    print("Done training in %.2fK" % (time.time() - start_train_time) )
+    min_dev_loss = np.min(dev_losses)
+    min_dev_idx = np.argmin(dev_losses)
+    print("Min val loss: %.3f at epoch %d"%(min_dev_loss,min_dev_idx))
     summary_writer.close()
 
 
-def run_evaluation(eval_model, eval_sess, model_dir, summary_writer):
+def run_evaluation(eval_model, eval_sess, model_dir, input_eval_file, output_eval_file, input_emb_weights, summary_writer):
     with eval_model.graph.as_default():
-        loaded_eval_model = model_helper.create_or_load_model(eval_model.model, model_dir, eval_sess, "eval")
-    eval_sess.run(eval_model.iterator.initializer)
-    val_loss = model_helper.compute_loss(loaded_eval_model, eval_sess)
-    model_helper.add_summary(summary_writer, "val_loss", val_loss)
-    return val_loss
+        loaded_eval_model = model_helper.create_or_load_model(eval_model.model, eval_sess, "eval", model_dir, input_emb_weights)
+    eval_iterator_feed_dict = {
+        eval_model.input_file_placeholder: input_eval_file,
+        eval_model.output_file_placeholder: output_eval_file
+    }
+    dev_loss = evaluation.eval(loaded_eval_model, eval_sess, eval_model.iterator, eval_iterator_feed_dict)
+    model_helper.add_summary(summary_writer, "dev_loss", dev_loss)
+    return dev_loss
 
 
