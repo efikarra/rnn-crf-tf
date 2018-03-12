@@ -18,7 +18,7 @@ def train(hparams):
     input_emb_weights = np.loadtxt(hparams.input_emb_file, delimiter=' ') if hparams.input_emb_file else None
     if hparams.model_architecture == "rnn-model": model_creator = model.RNN
     else: raise ValueError("Unknown model architecture. Only simple_rnn is supported so far.")
-    #create 3  models in 3 graphs for train, evaluation and inference, with 3 sessions sharing the same variables.
+    #create 2  models in 2 graphs for train and evaluation, with 2 sessions sharing the same variables.
     train_model = model_helper.create_train_model(model_creator, hparams, hparams.train_input_path,
                                                         hparams.train_target_path, mode=tf.contrib.learn.ModeKeys.TRAIN)
     eval_model = model_helper.create_eval_model(model_creator, hparams, tf.contrib.learn.ModeKeys.EVAL)
@@ -29,12 +29,13 @@ def train(hparams):
     train_sess=tf.Session(config=config_proto, graph=train_model.graph)
     eval_sess=tf.Session(config=config_proto, graph=eval_model.graph)
 
-    # create a new train model by initializing all graph variables
-    # or load a model from the latest checkpoint within the model_dir.
+    # create a new train model by initializing all variables of the train graph in the train_sess.
+    # or, using the latest checkpoint in the model_dir, load all variables of the train graph in the train_sess.
+    # Note that at this point, the eval graph variables are not initialized.
     with train_model.graph.as_default():
-        loaded_train_model= model_helper.create_or_load_model(train_model.model, train_sess, "train", model_dir, input_emb_weights)
-
+        loaded_train_model = model_helper.create_or_load_model(train_model.model, train_sess, "train", model_dir, input_emb_weights)
     # create a log file with name summary_name in out_dir. The file is written asynchronously during the training process.
+    # We also passed the train graph in order to be able to display it in Tensorboard
     summary_writer = tf.summary.FileWriter(os.path.join(out_dir,summary_name),train_model.graph)
 
     #run first evaluation before starting training
@@ -49,7 +50,7 @@ def train(hparams):
     batch_loss, epoch_loss=0.0, 0.0
     batch_count=0.0
 
-    #initialize train iterator
+    #initialize train iterator in train_sess
     train_sess.run(train_model.iterator.initializer)
     #keep lists of train/val losses for all epochs
     train_losses=[]
@@ -60,6 +61,7 @@ def train(hparams):
         while True:
             start_batch_time=0.0
             try:
+                # this call will run operations of train graph in train_sess
                 step_result = loaded_train_model.train(train_sess)
                 (_, batch_loss, batch_summary, global_step, learning_rate, batch_size, inputs, targets)=step_result
                 epoch_time += (time.time()-start_batch_time)
@@ -73,15 +75,20 @@ def train(hparams):
         # average epoch loss and epoch time over batches
         epoch_loss /= batch_count
         epoch_time /= batch_count
+        batch_count = 0.0
         #print results if the current epoch is a print results epoch
-        if (epoch +1) % num_ckpt_epochs ==0:
+        if (epoch +1) % num_ckpt_epochs == 0:
             print("Saving checkpoint...")
             model_helper.add_summary(summary_writer, "train_loss", epoch_loss)
-            # save checkpoint. global_step parameter is optional and is appended to the name of the checkpoint.
+            # save checkpoint. We save the values of the variables of the train graph.
+            # train_sess is the session in which the train graph was launched.
+            # global_step parameter is optional and is appended to the name of the checkpoint.
             loaded_train_model.saver.save(train_sess, os.path.join(out_dir, "rnn.ckpt"), global_step=epoch)
 
             print("Results: ")
             dev_loss = run_evaluation(eval_model, eval_sess, model_dir, hparams.val_input_path, hparams.val_target_path, input_emb_weights, summary_writer)
+            # tr_loss = run_evaluation(eval_model, eval_sess, model_dir, hparams.train_input_path, hparams.train_target_path, input_emb_weights, summary_writer)
+            # print("check %.3f:"%tr_loss)
             print(" epoch %d lr %g "
                   "train_loss %.3f, dev_loss %.3f" %
                   (epoch, loaded_train_model.learning_rate.eval(session=train_sess), epoch_loss, dev_loss))
@@ -99,6 +106,7 @@ def train(hparams):
 
 def run_evaluation(eval_model, eval_sess, model_dir, input_eval_file, output_eval_file, input_emb_weights, summary_writer):
     with eval_model.graph.as_default():
+        # initialize the variables of the eval graph in eval_sess or load them from a checkpoint.
         loaded_eval_model = model_helper.create_or_load_model(eval_model.model, eval_sess, "eval", model_dir, input_emb_weights)
     eval_iterator_feed_dict = {
         eval_model.input_file_placeholder: input_eval_file,

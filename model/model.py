@@ -81,17 +81,18 @@ class RNN(object):
                 tf.summary.scalar("lr", self.learning_rate),
                 tf.summary.scalar("train_loss", self.train_loss),] + grad_norm_summary
             )
-        #Saver. As argument, we give the variables that are going to be saved and restored.
+        # Saver. As argument, we give the variables that are going to be saved and restored.
+        # The Saver op will save the variables of the graph within it is defined. All graphs (train/eval/predict) have
+        # have a Saver operator.
         self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=50)
         # print trainable params
         # Print trainable variables
-        if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
-            print("# Trainable variables")
-            for param in params:
-                print("  %s, %s" % (param.name, str(param.get_shape())))
-            import numpy as np
-            total_params = np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
-            print(total_params)
+        print("# Trainable variables")
+        for param in params:
+            print("  %s, %s" % (param.name, str(param.get_shape())))
+        import numpy as np
+        total_params = np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
+        print(total_params)
 
 
     def build_graph(self, hparams):

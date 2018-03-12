@@ -35,7 +35,7 @@ def add_arguments(parser):
                         help="Padding symbol")
 
     # Input sequence max length
-    parser.add_argument("--input_max_len", type=int, default=50,
+    parser.add_argument("--input_max_len", type=int, default=None,
                         help="Max length of input sequence.")
 
     # network
@@ -43,7 +43,7 @@ def add_arguments(parser):
                         help="rnn-model. Model architecture.")
     parser.add_argument("--init_weight", type=float, default=0.1, help="Initial weights from [-init_weight, init_weight].")
     parser.add_argument("--num_units", type=int, default=32, help="Hidden units of rnn.")
-    parser.add_argument("--num_layers", type=int, default=32, help="Number of layers.")
+    parser.add_argument("--num_layers", type=int, default=1, help="Number of layers.")
     parser.add_argument("--in_to_hidden_dropout", type=float, default=0.0, help="dropout.")
     parser.add_argument("--rnn_type", type=str, default="uni", help="uni | bi . For bi, we build enc_layers/2 bi-directional layers.")
     parser.add_argument('--unit_type', type=str, default="rnn",
@@ -65,7 +65,7 @@ def add_arguments(parser):
 
     # optimizer
     parser.add_argument("--optimizer", type=str, default="sgd", help="sgd | adam")
-    parser.add_argument("--learning_rate", type=float, default=1.0,
+    parser.add_argument("--learning_rate", type=float, default=0.1,
                         help="Learning rate. Adam: 0.001 | 0.0001")
     parser.add_argument("--start_decay_step", type=int, default=0,
                         help="When we start to decay")
@@ -96,6 +96,8 @@ def add_arguments(parser):
                         help="Checkpoint file.")
     parser.add_argument("--eval_batch_size", type=int, default=32,
                         help="Batch size for evaluation mode.")
+    parser.add_argument("--predict_batch_size", type=int, default=32,
+                        help="Batch size for prediction mode.")
     parser.add_argument("--eval_input_path", type=str, default=None,
                         help="Input file path to perform evaluation and/or prediction.")
     parser.add_argument("--eval_target_path", type=str, default=None,
@@ -149,6 +151,7 @@ def create_hparams(flags):
         eval_input_path=flags.eval_input_path,
         eval_target_path=flags.eval_target_path,
         eval_batch_size=flags.eval_batch_size,
+        predict_batch_size=flags.predict_batch_size,
         # Other
         random_seed=flags.random_seed,
         log_device_placement=flags.log_device_placement,

@@ -19,7 +19,7 @@ class InferModel(collections.namedtuple("EvalModel",("graph", "model", "input_fi
 
 def create_train_model(model_creator, hparams, input_path, target_path, mode):
     graph = tf.Graph()
-    with graph.as_default():
+    with graph.as_default() , tf.container("train"):
         input_vocab_table = vocab_utils.create_vocab_table(hparams.vocab_path)
         input_dataset = tf.contrib.data.TextLineDataset(input_path)
         output_dataset = tf.contrib.data.TextLineDataset(target_path)
@@ -31,7 +31,7 @@ def create_train_model(model_creator, hparams, input_path, target_path, mode):
 
 def create_eval_model(model_creator, hparams, mode):
     graph = tf.Graph()
-    with graph.as_default():
+    with graph.as_default(), tf.container("eval"):
         # create a table to map words to vocab ids.
         input_vocab_table = vocab_utils.create_vocab_table(hparams.vocab_path)
         # define a placeholder for the input dataset.
@@ -51,13 +51,13 @@ def create_eval_model(model_creator, hparams, mode):
 
 def create_infer_model(model_creator, hparams, mode):
     graph = tf.Graph()
-    with graph.as_default():
+    with graph.as_default(), tf.container("predict"):
         input_vocab_table = vocab_utils.create_vocab_table(hparams.vocab_path)
         input_file_placeholder= tf.placeholder(shape=(),dtype=tf.string)
         input_dataset = tf.contrib.data.TextLineDataset(input_file_placeholder)
 
         iterator = iterator_utils.get_iterator_infer(input_dataset, input_vocab_table,
-                                               batch_size=hparams.eval_batch_size, random_seed=hparams.random_seed,
+                                               batch_size=hparams.predict_batch_size, random_seed=hparams.random_seed,
                                                pad=hparams.pad, input_max_len=hparams.input_max_len)
         model = model_creator(hparams, mode, iterator, input_vocab_table=input_vocab_table, reverse_input_vocab_table=None)
         return InferModel(graph, model, input_file_placeholder, iterator)

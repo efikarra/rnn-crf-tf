@@ -69,10 +69,10 @@ def get_iterator_infer(input_dataset, input_vocab_table, batch_size, random_seed
         input_dataset = input_dataset.map(lambda inp: inp[:input_max_len], num_threads=num_threads,
                                                         output_buffer_size=output_buffer_size)
     # Map words to ids
-        input_dataset = input_dataset.map(lambda inp: tf.cast(input_vocab_table.lookup(inp), tf.int32),
+    input_dataset = input_dataset.map(lambda inp: tf.cast(input_vocab_table.lookup(inp), tf.int32),
                                                     num_threads=num_threads, output_buffer_size=output_buffer_size)
     # get actual length of input sequence
-        input_dataset = input_dataset.map(lambda inp: (inp, tf.size(inp)),
+    input_dataset = input_dataset.map(lambda inp: (inp, tf.size(inp)),
                                                     num_threads=num_threads, output_buffer_size=output_buffer_size)
 
     def batching_func(x):

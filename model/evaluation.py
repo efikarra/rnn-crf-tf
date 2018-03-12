@@ -1,10 +1,13 @@
 import tensorflow as tf
 import model_helper
-import utils
 import model
-import io
+import os
+import numpy as np
+import utils
+
 
 def eval(model, sess, iterator, iterator_feed_dict):
+    # initialize the iterator with the data on which we will evaluate the model.
     sess.run(iterator.initializer, feed_dict=iterator_feed_dict)
     loss = model_helper.run_batch_evaluation(model, sess)
     return loss
@@ -12,26 +15,23 @@ def eval(model, sess, iterator, iterator_feed_dict):
 
 def predict(model, sess, iterator, iterator_feed_dict):
     sess.run(iterator.initializer, feed_dict=iterator_feed_dict)
-    predictions=model.predict(sess)
-    return predictions
+    concat_predictions = {}
+    batch_count = 0
+    while True:
+        try:
+            batch_count += 1
+            predictions = model.predict(sess)
+            if "probabilities" not in concat_predictions:
+                concat_predictions["probabilities"]=predictions["probabilities"]
+            else: concat_predictions["probabilities"]=np.append(concat_predictions["probabilities"], predictions["probabilities"], axis=0)
+            if "classes" not in concat_predictions:
+                concat_predictions["classes"]=predictions["classes"]
+            else: concat_predictions["classes"]=np.append(concat_predictions["classes"],predictions["classes"], axis=0)
 
-def save_probabilities(probabilities, filepath):
-    with io.open(filepath, 'w', encoding='utf-8') as file:
-        for probs in probabilities:
-            res = ""
-            for i, ps in enumerate(probs):
-                res = " ".join([str(p) for p in ps])
-                if i < len(probs) - 1:
-                    res += ","
-                file.write(res)
-            file.write("\n")
+        except tf.errors.OutOfRangeError:
+            break
+    return concat_predictions
 
-def save_labels(labels, filepath):
-    with io.open(filepath, 'w', encoding='utf-8') as file:
-        newline = ""
-        for label in labels:
-            file.write(newline+str(label))
-            newline="\n"
 
 def evaluate(hparams, ckpt):
     if hparams.model_architecture == "rnn-model": model_creator = model.RNN
@@ -48,6 +48,8 @@ def evaluate(hparams, ckpt):
         }
         eval_loss = eval(loaded_eval_model, eval_sess, eval_model.iterator, iterator_feed_dict)
         print("Eval loss: %.3f"%eval_loss)
+    print("Starting predictions:")
+
     prediction_model = model_helper.create_infer_model(model_creator, hparams, tf.contrib.learn.ModeKeys.INFER)
     prediction_sess = tf.Session(config=utils.get_config_proto(), graph=prediction_model.graph)
     with prediction_model.graph.as_default():
@@ -55,8 +57,10 @@ def evaluate(hparams, ckpt):
         iterator_feed_dict = {
             prediction_model.input_file_placeholder: hparams.val_input_path,
         }
-        predictions=predict(loaded_prediction_model, prediction_sess, prediction_model.iterator, iterator_feed_dict)
-        print(predictions["probabilities"][0:2])
-        print(predictions["classes"][0:2])
+    predictions=predict(loaded_prediction_model, prediction_sess, prediction_model.iterator, iterator_feed_dict)
+    np.savetxt(os.path.join(hparams.eval_output_folder, "classes.txt"), predictions["classes"])
+    np.savetxt(os.path.join(hparams.eval_output_folder, "probabilities.txt"), predictions["probabilities"])
+    # save_labels(predictions["classes"], os.path.join(hparams.eval_output_folder, "classes"))
+    # save_probabilities(predictions["probabilities"], os.path.join(hparams.eval_output_folder, "probabilities"))
 
 

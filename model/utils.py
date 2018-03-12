@@ -1,7 +1,15 @@
+import io
+
+import numpy as np
 import tensorflow as tf
 import codecs
 import os
 import json
+
+
+def get_file_name(hparams):
+    filename = hparams.model_architecture+"_"+hparams.num_units+"_"+hparams.num_layers+"_"+hparams.in_to_hidden_dropout\
+               +"_"+hparams.rnn_type+"_"+hparams.unit_type+"_"+hparams.emb_size+"_"+hparams.batch_size
 
 
 def maybe_parse_standard_hparams(hparams, hparams_path):
@@ -66,7 +74,8 @@ def ensure_compatible_hparams(hparams,default_hparams,flags):
 
     # Make sure that the loaded model has latest values for the below keys
     updated_keys = [
-        "out_dir","num_ckpt_epochs","num_epochs","gpu","eval_batch_size","eval_input_path","eval_target_path","eval_batch_size"
+        "out_dir","num_ckpt_epochs","num_epochs","gpu","eval_batch_size","eval_input_path","eval_target_path",
+        "eval_output_folder","eval_batch_size","predict_batch_size"
     ]
     for key in updated_keys:
         if key in default_config and getattr(hparams,key) != default_config[key]:
