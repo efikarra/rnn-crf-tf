@@ -2,9 +2,10 @@ import nltk
 import itertools
 import numpy as np
 import os
-import io
+import argparse
 
-def build_vocabulary(tokenized_seqs, max_freq=1.0, min_freq=0.0, stopwords=None):
+
+def build_vocabulary(tokenized_seqs, max_freq=1.0, min_freq=0.0):
     # compute word frequencies
     vocab=set()
     freq_dist=nltk.FreqDist(itertools.chain(*tokenized_seqs))
@@ -50,14 +51,21 @@ def avg_seq_length(seq_tok):
     return sum_len/len(seq_tok),max,min
 
 
-if __name__=="__main__":
-    data_folder = "data"
-    train_input_file="train_input.txt"
-    train_target_file = "train_input.txt"
-    dev_input_file = "dev_input.txt"
-    dev_target_file = "dev_input.txt"
-    test_input_file = "test_input.txt"
-    test_target_file = "test_input.txt"
+def preprocess_data(params):
+    data_folder = params.data_folder
+    train_input_file = params.train_input_file
+    train_target_file = params.train_target_file
+    dev_input_file = params.dev_input_file
+    dev_target_file = params.dev_target_file
+    test_input_file = params.test_input_file
+    test_target_file = params.test_target_file
+    # data_folder = "experiments/data"
+    # train_input_file="train_input_sgmt.txt"
+    # train_target_file = "train_input_sgmt.txt"
+    # dev_input_file = "val_input_sgmt.txt"
+    # dev_target_file = "val_input_sgmt.txt"
+    # test_input_file = "test_input_sgmt.txt"
+    # test_target_file = "test_input_sgmt.txt"
 
     train_input=load_data_from_file(os.path.join(data_folder,train_input_file))
     train_target = load_data_from_file(os.path.join(data_folder,train_target_file))
@@ -80,6 +88,29 @@ if __name__=="__main__":
     print("Dev: avg_seq_length = %.3f, max seq length = %d, min seq length = %d " % (avg_dev_len, max_dev_len, min_dev_len))
     print("Test: avg_seq_length = %.3f, max seq length = %d, min seq length = %d " % (avg_test_len, max_test_len, min_test_len))
 
-    vocab = build_vocabulary(train_tok, max_freq=0.2)
+    vocab = build_vocabulary(train_tok, max_freq=params.max_freq, min_freq=params.min_freq)
     print("Vocab size: %d " % len(vocab))
-    save_to_file("data/vocab.txt", vocab)
+    save_to_file(os.path.join(data_folder,str(params.max_freq)+str(params.min_freq)+params.vocab_file), vocab)
+
+
+def add_arguments(parser):
+    parser.register("type", "bool", lambda v: v.lower() == "true")
+    parser.add_argument("--data_folder", type=str, default=None)
+    parser.add_argument("--train_input_file", type=str, default=None)
+    parser.add_argument("--train_target_file", type=str, default=None)
+    parser.add_argument("--dev_input_file", type=str, default=None)
+    parser.add_argument("--dev_target_file", type=str, default=None)
+    parser.add_argument("--test_input_file", type=str, default=None)
+    parser.add_argument("--test_target_file", type=str, default=None)
+    parser.add_argument("--vocab_file", type=str, default=None)
+    parser.add_argument("--min_freq", type=float, default=0.0)
+    parser.add_argument("--max_freq", type=float, default=1.0)
+
+def main():
+    parser = argparse.ArgumentParser()
+    add_arguments(parser)
+    params, unparsed = parser.parse_known_args()
+    preprocess_data(params)
+
+if __name__ == '__main__':
+    main()
