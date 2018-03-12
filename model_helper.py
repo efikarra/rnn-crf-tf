@@ -57,8 +57,8 @@ def create_infer_model(model_creator, hparams, mode):
         input_dataset = tf.contrib.data.TextLineDataset(input_file_placeholder)
 
         iterator = iterator_utils.get_iterator_infer(input_dataset, input_vocab_table,
-                                               batch_size=hparams.predict_batch_size, random_seed=hparams.random_seed,
-                                               pad=hparams.pad, input_max_len=hparams.input_max_len)
+                                                     batch_size=hparams.predict_batch_size, random_seed=hparams.random_seed,
+                                                     pad=hparams.pad, input_max_len=hparams.input_max_len)
         model = model_creator(hparams, mode, iterator, input_vocab_table=input_vocab_table, reverse_input_vocab_table=None)
         return InferModel(graph, model, input_file_placeholder, iterator)
 

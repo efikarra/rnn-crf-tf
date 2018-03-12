@@ -20,7 +20,7 @@ def train(hparams):
     else: raise ValueError("Unknown model architecture. Only simple_rnn is supported so far.")
     #create 2  models in 2 graphs for train and evaluation, with 2 sessions sharing the same variables.
     train_model = model_helper.create_train_model(model_creator, hparams, hparams.train_input_path,
-                                                        hparams.train_target_path, mode=tf.contrib.learn.ModeKeys.TRAIN)
+                                                  hparams.train_target_path, mode=tf.contrib.learn.ModeKeys.TRAIN)
     eval_model = model_helper.create_eval_model(model_creator, hparams, tf.contrib.learn.ModeKeys.EVAL)
 
     # some configuration of gpus logging

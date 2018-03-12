@@ -160,9 +160,9 @@ class RNN(object):
         # Construct forward and backward cells.
         #each one has num_bi_layers layers. Each layer has num_units.
         fw_cell = model_helper.create_rnn_cell(hparams.unit_type, hparams.num_units, num_bi_layers,
-                                                    hparams.forget_bias, hparams.in_to_hidden_dropout, self.mode)
+                                               hparams.forget_bias, hparams.in_to_hidden_dropout, self.mode)
         bw_cell = model_helper.create_rnn_cell(hparams.unit_type, hparams.num_units, num_bi_layers,
-                                                    hparams.forget_bias, hparams.in_to_hidden_dropout, self.mode)
+                                               hparams.forget_bias, hparams.in_to_hidden_dropout, self.mode)
 
         # initial_state_fw, initial_state_bw are initialized to 0
         # bi_outputs is a tuple (output_fw, output_bw) containing the forward and the backward rnn output Tensor
