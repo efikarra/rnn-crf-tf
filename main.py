@@ -88,6 +88,8 @@ def add_arguments(parser):
                         help="Random seed (>0, set a specific seed).")
     parser.add_argument("--log_device_placement", type="bool", nargs="?",
                         const=True, default=False, help="Debug GPU allocation.")
+    parser.add_argument("--timeline", type="bool", nargs="?",
+                        const=True, default=False, help="Log timeline information.")
 
     # Evaluation/Prediction
     parser.add_argument("--eval_output_folder", type=str, default=None,
@@ -155,7 +157,8 @@ def create_hparams(flags):
         # Other
         random_seed=flags.random_seed,
         log_device_placement=flags.log_device_placement,
-        gpu=flags.gpu
+        gpu=flags.gpu,
+        timeline=flags.timeline
     )
 
 
