@@ -55,7 +55,7 @@ def evaluate(hparams, ckpt):
     with prediction_model.graph.as_default():
         loaded_prediction_model = model_helper.load_model(prediction_model.model, prediction_sess, "prediction", ckpt)
         iterator_feed_dict = {
-            prediction_model.input_file_placeholder: hparams.val_input_path,
+            prediction_model.input_file_placeholder: hparams.eval_input_path,
         }
     predictions=predict(loaded_prediction_model, prediction_sess, prediction_model.iterator, iterator_feed_dict)
     print("Saving predictions:")
