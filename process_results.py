@@ -2,6 +2,11 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_auc_sco
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import matplotlib
+matplotlib.rcParams['font.sans-serif'] = 'SimHei'
+matplotlib.rcParams['font.serif'] = 'SimHei'
+matplotlib.rcParams['font.family'] = "sans-serif"
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import argparse
 
