@@ -90,5 +90,4 @@ def get_config_proto(log_device_placement=False, allow_soft_placement=True):
                                   allow_soft_placement = allow_soft_placement)
     # allocate as much GPU memory as is needed, based on runtime allocations.
     config_proto.gpu_options.allow_growth = True
-    config_proto.gpu_options.per_process_gpu_memory_fraction = 0.8
     return config_proto
