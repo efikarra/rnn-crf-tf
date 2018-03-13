@@ -82,7 +82,6 @@ def train(hparams):
 
                 (_, batch_loss, batch_summary, global_step, learning_rate, batch_size)=step_result
                 avg_batch_time += (time.time()-start_batch_time)
-                print(batch_loss)
                 epoch_loss += batch_loss
                 batch_count += 1
                 step+=1
