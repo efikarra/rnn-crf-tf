@@ -89,5 +89,5 @@ def get_config_proto(log_device_placement=False, allow_soft_placement=True):
     config_proto = tf.ConfigProto(log_device_placement=log_device_placement,
                                   allow_soft_placement = allow_soft_placement)
     # allocate as much GPU memory as is needed, based on runtime allocations.
-    config_proto.gpu_options.allow_growth = False
+    config_proto.gpu_options.allow_growth = True
     return config_proto
