@@ -31,7 +31,7 @@ def compute_classification_report(predictions, targets):
 
 def process_results(params):
 
-    classes_preds = np.loadtxt(params.preds_labels_file)
+    classes_preds = np.loadtxt(params.preds_file)
     targets = np.loadtxt(params.targets_file)
 
     accuracy = compute_accuracy(classes_preds, targets)
