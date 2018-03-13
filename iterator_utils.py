@@ -11,29 +11,24 @@ class BatchedInput(collections.namedtuple("BatchedInput",
 
 
 def get_iterator(input_dataset, output_dataset, input_vocab_table, batch_size, random_seed, pad,
-                 input_max_len=None, num_threads=4, output_buffer_size=None):
+                 input_max_len=None, output_buffer_size=None):
     if not output_buffer_size: output_buffer_size = batch_size * 1000
 
     pad_id = tf.cast(input_vocab_table.lookup(tf.constant(pad)),tf.int32)
-    input_output_dataset = tf.contrib.data.Dataset.zip((input_dataset, output_dataset))
+    input_output_dataset = tf.data.Dataset.zip((input_dataset, output_dataset))
     input_output_dataset = input_output_dataset.shuffle(output_buffer_size, random_seed)
 
     input_output_dataset=input_output_dataset.map(lambda inp,out: (tf.string_split([inp]).values,tf.string_to_number
-                                                (tf.convert_to_tensor(out),tf.int32)),
-                                                  num_threads=num_threads, output_buffer_size=output_buffer_size)
+                                                (tf.convert_to_tensor(out),tf.int32)),)
     # remove input sequences of zero length
     input_output_dataset = input_output_dataset.filter(lambda inp,out: tf.size(inp)>0)
     if input_max_len is not None:
-        input_output_dataset = input_output_dataset.map(lambda inp,out: (inp[:input_max_len],out),
-                                                        num_threads = num_threads,
-                                                        output_buffer_size=output_buffer_size)
+        input_output_dataset = input_output_dataset.map(lambda inp,out: (inp[:input_max_len],out))
     # Map words to ids
     input_output_dataset = input_output_dataset.map(lambda inp,out:
-                                                    (tf.cast(input_vocab_table.lookup(inp),tf.int32),out),
-                                                    num_threads=num_threads, output_buffer_size=output_buffer_size)
+                                                    (tf.cast(input_vocab_table.lookup(inp),tf.int32),out), )
     # get actual length of input sequence
-    input_output_dataset = input_output_dataset.map(lambda inp,out:(inp,out,tf.size(inp)),
-                                                    num_threads=num_threads, output_buffer_size=output_buffer_size)
+    input_output_dataset = input_output_dataset.map(lambda inp,out:(inp,out,tf.size(inp)),)
 
     def batching_func(x):
         return x.padded_batch(
@@ -55,25 +50,21 @@ def get_iterator(input_dataset, output_dataset, input_vocab_table, batch_size, r
 
 
 def get_iterator_infer(input_dataset, input_vocab_table, batch_size, random_seed, pad,
-                 input_max_len=None, num_threads=4, output_buffer_size=None):
+                 input_max_len=None, output_buffer_size=None):
     # split source sentences on space
     if not output_buffer_size: output_buffer_size = batch_size * 1000
     pad_id = tf.cast(input_vocab_table.lookup(tf.constant(pad)),tf.int32)
 
     input_dataset = input_dataset.shuffle(output_buffer_size, random_seed)
-    input_dataset = input_dataset.map(lambda inp: tf.string_split([inp]).values, num_threads=num_threads,
-                                      output_buffer_size=output_buffer_size)
+    input_dataset = input_dataset.map(lambda inp: tf.string_split([inp]).values)
     # remove input sequences of zero length
     input_dataset = input_dataset.filter(lambda inp: tf.size(inp) > 0)
     if input_max_len:
-        input_dataset = input_dataset.map(lambda inp: inp[:input_max_len], num_threads=num_threads,
-                                                        output_buffer_size=output_buffer_size)
+        input_dataset = input_dataset.map(lambda inp: inp[:input_max_len])
     # Map words to ids
-    input_dataset = input_dataset.map(lambda inp: tf.cast(input_vocab_table.lookup(inp), tf.int32),
-                                                    num_threads=num_threads, output_buffer_size=output_buffer_size)
+    input_dataset = input_dataset.map(lambda inp: tf.cast(input_vocab_table.lookup(inp), tf.int32))
     # get actual length of input sequence
-    input_dataset = input_dataset.map(lambda inp: (inp, tf.size(inp)),
-                                                    num_threads=num_threads, output_buffer_size=output_buffer_size)
+    input_dataset = input_dataset.map(lambda inp: (inp, tf.size(inp)))
 
     def batching_func(x):
         return x.padded_batch(
