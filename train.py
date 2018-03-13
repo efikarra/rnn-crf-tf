@@ -46,7 +46,7 @@ def train(hparams):
     print("Train loss before training: %.3f" % train_loss)
     # Start training
     start_train_time=time.time()
-    epoch_time=0.0
+    avg_batch_time=0.0
     batch_loss, epoch_loss=0.0, 0.0
     batch_count=0.0
 
@@ -59,12 +59,13 @@ def train(hparams):
     for epoch in range(num_epochs):
         #go through all batches for the current epoch
         while True:
-            start_batch_time=0.0
+            start_batch_time = time.time()
             try:
                 # this call will run operations of train graph in train_sess
                 step_result = loaded_train_model.train(train_sess)
                 (_, batch_loss, batch_summary, global_step, learning_rate, batch_size, inputs, targets)=step_result
-                epoch_time += (time.time()-start_batch_time)
+                avg_batch_time += (time.time()-start_batch_time)
+                print(batch_loss)
                 epoch_loss += batch_loss
                 batch_count += 1
             except tf.errors.OutOfRangeError:
@@ -74,8 +75,8 @@ def train(hparams):
                 break
         # average epoch loss and epoch time over batches
         epoch_loss /= batch_count
-        epoch_time /= batch_count
-        batch_count = 0.0
+        avg_batch_time /= batch_count
+        print("Number of batches: %d"%batch_count)
         #print results if the current epoch is a print results epoch
         if (epoch +1) % num_ckpt_epochs == 0:
             print("Saving checkpoint...")
@@ -90,10 +91,13 @@ def train(hparams):
             # tr_loss = run_evaluation(eval_model, eval_sess, model_dir, hparams.train_input_path, hparams.train_target_path, input_emb_weights, summary_writer)
             # print("check %.3f:"%tr_loss)
             print(" epoch %d lr %g "
-                  "train_loss %.3f, dev_loss %.3f" %
-                  (epoch, loaded_train_model.learning_rate.eval(session=train_sess), epoch_loss, dev_loss))
+                  "train_loss %.3f, dev_loss %.3f avg_batch_time %f"%
+                  (epoch, loaded_train_model.learning_rate.eval(session=train_sess), epoch_loss, dev_loss,
+                                 avg_batch_time))
             train_losses.append(epoch_loss)
             dev_losses.append(dev_loss)
+        batch_count = 0.0
+        avg_batch_time = 0.0
 
     # save final model
     loaded_train_model.saver.save(train_sess,os.path.join(out_dir,"rnn.ckpt"), global_step=num_epochs)
