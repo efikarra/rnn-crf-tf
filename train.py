@@ -6,6 +6,8 @@ import model_helper
 import model
 import numpy as np
 import evaluation
+from tensorflow.python.client import timeline
+
 
 def train(hparams):
     num_epochs = hparams.num_epochs
@@ -55,6 +57,10 @@ def train(hparams):
     #keep lists of train/val losses for all epochs
     train_losses=[]
     dev_losses=[]
+
+    # vars to compute timeline of operations
+    options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+    run_metadata = tf.RunMetadata()
     #train the model for num_epochs. One epoch means a pass through the whole train dataset, i.e., through all the batches.
     for epoch in range(num_epochs):
         #go through all batches for the current epoch
@@ -62,8 +68,14 @@ def train(hparams):
             start_batch_time = time.time()
             try:
                 # this call will run operations of train graph in train_sess
-                step_result = loaded_train_model.train(train_sess)
-                (_, batch_loss, batch_summary, global_step, learning_rate, batch_size, inputs, targets)=step_result
+                step_result = loaded_train_model.train(train_sess,options=options,run_metadata=run_metadata)
+                #compute pipeline
+                fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+                chrome_trace = fetched_timeline.generate_chrome_trace_format()
+                with open('timeline_02_step_%d.json' % epoch, 'w') as f:
+                    f.write(chrome_trace)
+
+                (_, batch_loss, batch_summary, global_step, learning_rate, batch_size)=step_result
                 avg_batch_time += (time.time()-start_batch_time)
                 print(batch_loss)
                 epoch_loss += batch_loss
