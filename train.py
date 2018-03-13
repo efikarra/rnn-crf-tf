@@ -24,7 +24,7 @@ def train(hparams):
     eval_model = model_helper.create_eval_model(model_creator, hparams, tf.contrib.learn.ModeKeys.EVAL)
 
     # some configuration of gpus logging
-    config_proto = utils.get_config_proto(log_device_placement=log_device_placement, allow_soft_placement=False)
+    config_proto = utils.get_config_proto(log_device_placement=log_device_placement, allow_soft_placement=True)
     # create two separate sessions for trai/eval
     train_sess=tf.Session(config=config_proto, graph=train_model.graph)
     eval_sess=tf.Session(config=config_proto, graph=eval_model.graph)

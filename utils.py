@@ -74,7 +74,7 @@ def ensure_compatible_hparams(hparams,default_hparams,flags):
 
     # Make sure that the loaded model has latest values for the below keys
     updated_keys = [
-        "out_dir","num_ckpt_epochs","num_epochs","gpu","eval_batch_size","eval_input_path","eval_target_path",
+        "out_dir","num_ckpt_epochs","num_epochs","gpu","batch_size","eval_input_path","eval_target_path",
         "eval_output_folder","eval_batch_size","predict_batch_size"
     ]
     for key in updated_keys:
@@ -89,5 +89,5 @@ def get_config_proto(log_device_placement=False, allow_soft_placement=True):
     config_proto = tf.ConfigProto(log_device_placement=log_device_placement,
                                   allow_soft_placement = allow_soft_placement)
     # allocate as much GPU memory as is needed, based on runtime allocations.
-    config_proto.gpu_options.allow_growth = True
+    config_proto.gpu_options.allow_growth = False
     return config_proto
