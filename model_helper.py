@@ -21,8 +21,8 @@ def create_train_model(model_creator, hparams, input_path, target_path, mode):
     graph = tf.Graph()
     with graph.as_default() , tf.container("train"):
         input_vocab_table = vocab_utils.create_vocab_table(hparams.vocab_path)
-        input_dataset = tf.contrib.data.TextLineDataset(input_path)
-        output_dataset = tf.contrib.data.TextLineDataset(target_path)
+        input_dataset = tf.data.TextLineDataset(input_path)
+        output_dataset = tf.data.TextLineDataset(target_path)
         iterator = iterator_utils.get_iterator(input_dataset, output_dataset, input_vocab_table,
                                                batch_size=hparams.batch_size, random_seed=hparams.random_seed,
                                                pad=hparams.pad, input_max_len=hparams.input_max_len)
@@ -38,9 +38,9 @@ def create_eval_model(model_creator, hparams, mode):
         # we will dynamically initialize this placeholder with a file name during validation.
         # The reason for this is that during validation, we may want to evaluate our trained model on different datasets.
         input_file_placeholder= tf.placeholder(shape=(),dtype=tf.string)
-        input_dataset = tf.contrib.data.TextLineDataset(input_file_placeholder)
+        input_dataset = tf.data.TextLineDataset(input_file_placeholder)
         output_file_placeholder= tf.placeholder(shape=(), dtype=tf.string)
-        output_dataset = tf.contrib.data.TextLineDataset(output_file_placeholder)
+        output_dataset = tf.data.TextLineDataset(output_file_placeholder)
 
         iterator = iterator_utils.get_iterator(input_dataset, output_dataset, input_vocab_table,
                                                batch_size=hparams.eval_batch_size, random_seed=hparams.random_seed,
@@ -54,7 +54,7 @@ def create_infer_model(model_creator, hparams, mode):
     with graph.as_default(), tf.container("predict"):
         input_vocab_table = vocab_utils.create_vocab_table(hparams.vocab_path)
         input_file_placeholder= tf.placeholder(shape=(),dtype=tf.string)
-        input_dataset = tf.contrib.data.TextLineDataset(input_file_placeholder)
+        input_dataset = tf.data.TextLineDataset(input_file_placeholder)
 
         iterator = iterator_utils.get_iterator_infer(input_dataset, input_vocab_table,
                                                      batch_size=hparams.predict_batch_size, random_seed=hparams.random_seed,

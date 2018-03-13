@@ -190,14 +190,17 @@ class RNN(object):
         return loss
 
 
-    def train(self, sess):
+    def train(self, sess, options=None, run_metadata=None):
         assert self.mode == tf.contrib.learn.ModeKeys.TRAIN
         return sess.run([self.update,
                         self.train_loss,
                         self.train_summary,
                         self.global_step,
                         self.learning_rate,
-                        self.batch_size,tf.transpose(self.inputs), self.targets])
+                        self.batch_size],
+                        options=options,
+                        run_metadata=run_metadata
+                        )
 
     def eval(self, sess):
         assert self.mode == tf.contrib.learn.ModeKeys.EVAL
