@@ -58,6 +58,7 @@ def evaluate(hparams, ckpt):
             prediction_model.input_file_placeholder: hparams.val_input_path,
         }
     predictions=predict(loaded_prediction_model, prediction_sess, prediction_model.iterator, iterator_feed_dict)
+    print("Saving predictions:")
     np.savetxt(os.path.join(hparams.eval_output_folder, "classes.txt"), predictions["classes"])
     np.savetxt(os.path.join(hparams.eval_output_folder, "probabilities.txt"), predictions["probabilities"])
     # save_labels(predictions["classes"], os.path.join(hparams.eval_output_folder, "classes"))

@@ -3,9 +3,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import argparse
 
 
-def accuracy(predictions, targets):
+def compute_accuracy(predictions, targets):
     accuracy = accuracy_score(y_true=targets, y_pred=predictions)
     return accuracy
 
@@ -28,19 +29,32 @@ def compute_classification_report(predictions, targets):
     plt.show()
 
 
-probs_file="experiments/eval_output/probabilities.txt"
-classes_file="experiments/eval_output/classes.txt"
+def process_results(params):
 
-targets_file="experiments/data/dev_target.txt"
+    classes_preds = np.loadtxt(params.preds_labels_file)
+    targets = np.loadtxt(params.targets_file)
 
-classes_preds = np.loadtxt(classes_file)
-targets = np.loadtxt(targets_file)
+    accuracy = compute_accuracy(classes_preds, targets)
+    print("Accuracy %.3f" % accuracy)
+
+    compute_classification_report(classes_preds, targets)
 
 
-accuracy = accuracy(classes_preds, targets)
-print("Accuracy %.3f"%accuracy)
+def add_arguments(parser):
+    parser.register("type", "bool", lambda v: v.lower() == "true")
+    parser.add_argument("--preds_file", type=str, default=None)
+    parser.add_argument("--targets_file", type=str, default=None)
 
-compute_classification_report(classes_preds, targets)
+def main():
+    parser = argparse.ArgumentParser()
+    add_arguments(parser)
+    params, unparsed = parser.parse_known_args()
+    process_results(params)
+
+if __name__ == '__main__':
+    main()
+
+
 
 
 # auc = roc_auc(classes_preds, targets)
