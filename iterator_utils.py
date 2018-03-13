@@ -23,7 +23,7 @@ def get_iterator(input_dataset, output_dataset, input_vocab_table, batch_size, r
                                                   num_threads=num_threads, output_buffer_size=output_buffer_size)
     # remove input sequences of zero length
     input_output_dataset = input_output_dataset.filter(lambda inp,out: tf.size(inp)>0)
-    if input_max_len:
+    if input_max_len is not None:
         input_output_dataset = input_output_dataset.map(lambda inp,out: (inp[:input_max_len],out),
                                                         num_threads = num_threads,
                                                         output_buffer_size=output_buffer_size)
