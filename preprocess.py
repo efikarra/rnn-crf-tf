@@ -5,7 +5,7 @@ import os
 import argparse
 import io
 
-def build_vocabulary(tokenized_seqs, max_freq=1.0, min_freq=0.0):
+def build_vocabulary(tokenized_seqs, max_freq=0.0, min_freq=0.0):
     # compute word frequencies
     vocab=set()
     freq_dist=nltk.FreqDist(itertools.chain(*tokenized_seqs))
