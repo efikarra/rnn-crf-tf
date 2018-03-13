@@ -1,7 +1,6 @@
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, accuracy_score
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import matplotlib
 matplotlib.rcParams['font.sans-serif'] = 'SimHei'
 matplotlib.rcParams['font.serif'] = 'SimHei'
@@ -24,14 +23,14 @@ def compute_classification_report(predictions, targets):
     conf_matrix = confusion_matrix(targets, predictions)
     print "\nConfusion matrix:\n", conf_matrix
     print(classification_report(targets, predictions))
-    df_cm = pd.DataFrame(conf_matrix)
-                         # index=target_names,
-    #                      columns=target_names)
-    plt.figure(figsize=(10, 7))
-    sns.heatmap(df_cm, annot=True)
-    plt.ylabel('Actual')
-    plt.xlabel('Predicted')
-    plt.show()
+    # df_cm = pd.DataFrame(conf_matrix)
+    #                      # index=target_names,
+    # #                      columns=target_names)
+    # plt.figure(figsize=(10, 7))
+    # sns.heatmap(df_cm, annot=True)
+    # plt.ylabel('Actual')
+    # plt.xlabel('Predicted')
+    # plt.show()
 
 
 def process_results(params):
