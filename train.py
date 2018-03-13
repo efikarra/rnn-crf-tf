@@ -62,24 +62,29 @@ def train(hparams):
     options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
     run_metadata = tf.RunMetadata()
     #train the model for num_epochs. One epoch means a pass through the whole train dataset, i.e., through all the batches.
+    step=0
     for epoch in range(num_epochs):
         #go through all batches for the current epoch
         while True:
             start_batch_time = time.time()
             try:
                 # this call will run operations of train graph in train_sess
-                step_result = loaded_train_model.train(train_sess,options=options,run_metadata=run_metadata)
-                #compute pipeline
-                fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-                chrome_trace = fetched_timeline.generate_chrome_trace_format()
-                with open('timeline_02_step_%d.json' % epoch, 'w') as f:
-                    f.write(chrome_trace)
+                if step%10==0:
+                    step_result = loaded_train_model.train(train_sess,options=options,run_metadata=run_metadata)
+                    summary_writer.add_run_metadata(run_metadata, 'step%d' % step)
+                    #compute pipeline
+                    fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+                    chrome_trace = fetched_timeline.generate_chrome_trace_format()
+                    with open('timeline_02_step_%d.json' % step, 'w') as f:
+                        f.write(chrome_trace)
+                else: step_result = loaded_train_model.train(train_sess,options=None,run_metadata=None)
 
                 (_, batch_loss, batch_summary, global_step, learning_rate, batch_size)=step_result
                 avg_batch_time += (time.time()-start_batch_time)
                 print(batch_loss)
                 epoch_loss += batch_loss
                 batch_count += 1
+                step+=1
             except tf.errors.OutOfRangeError:
                 #when the iterator of the train batches reaches the end, break the loop
                 #and reinitialize the iterator to start from the beginning of the train data.
