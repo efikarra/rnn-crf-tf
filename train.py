@@ -73,9 +73,9 @@ def train(hparams):
                     step_result = loaded_train_model.train(train_sess,options=options,run_metadata=run_metadata)
                     summary_writer.add_run_metadata(run_metadata, 'step%d' % step)
                     #compute pipeline
-                    fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-                    chrome_trace = fetched_timeline.generate_chrome_trace_format()
                     if hparams.timeline:
+                        fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+                        chrome_trace = fetched_timeline.generate_chrome_trace_format()
                         with open('timelines/timeline_02_step_%d.json' % step, 'w') as f:
                             f.write(chrome_trace)
                 else: step_result = loaded_train_model.train(train_sess,options=None,run_metadata=None)
