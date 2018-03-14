@@ -3,6 +3,7 @@ import tensorflow as tf
 import time
 import iterator_utils
 import vocab_utils
+import numpy as np
 
 
 class TrainModel(collections.namedtuple("TrainModel",("graph", "model", "iterator"))):
