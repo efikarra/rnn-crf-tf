@@ -55,8 +55,8 @@ def preprocess_data(params):
     data_folder = params.data_folder
     train_input_file = params.train_input_file
     train_target_file = params.train_target_file
-    dev_input_file = params.dev_input_file
-    dev_target_file = params.dev_target_file
+    val_input_file = params.dev_input_file
+    val_target_file = params.dev_target_file
     test_input_file = params.test_input_file
     test_target_file = params.test_target_file
     # data_folder = "experiments/data"
@@ -69,26 +69,33 @@ def preprocess_data(params):
 
     train_input=load_data_from_file(os.path.join(data_folder,train_input_file))
     train_target = load_data_from_file(os.path.join(data_folder,train_target_file))
-    dev_input = load_data_from_file(os.path.join(data_folder,dev_input_file))
-    dev_target = load_data_from_file(os.path.join(data_folder,dev_target_file))
+    val_input = load_data_from_file(os.path.join(data_folder,val_input_file))
+    val_target = load_data_from_file(os.path.join(data_folder,val_target_file))
     test_input = load_data_from_file(os.path.join(data_folder,test_input_file))
     test_target = load_data_from_file(os.path.join(data_folder,test_target_file))
     print("Train input: %d "% len(train_input))
-    print("Train labels: %d " % len(train_input))
-    print("Dev input: %d " % len(dev_input))
-    print("Dev labels: %d " % len(dev_input))
+    print("Train labels: %d " % len(train_target))
+    print("Val input: %d " % len(val_input))
+    print("Val labels: %d " % len(val_target))
     print("Test size: %d " % len(test_input))
-    print("Test labels: %d " % len(test_input))
+    print("Test labels: %d " % len(test_target))
+
+    import json
+    lid2lab = json.load(open("experiments/data/lid2lab.json"))
+    lab2shortname = json.load(open("experiments/data/lab2shortname.json"))
+    for i in range(10):
+        print train_input[i]
+        print lab2shortname[lid2lab[int(train_target[i])]]
 
     train_tok=tokenize(train_input)
-    dev_tok = tokenize(dev_input)
+    val_tok = tokenize(val_input)
     test_tok = tokenize(test_input)
 
     avg_train_len,max_train_len,min_train_len=avg_seq_length(train_tok)
-    avg_dev_len, max_dev_len, min_dev_len =avg_seq_length(dev_tok)
+    avg_val_len, max_val_len, min_val_len =avg_seq_length(val_tok)
     avg_test_len, max_test_len, min_test_len =avg_seq_length(test_tok)
     print("Train: avg_seq_length = %.3f, max seq length = %d, min seq length = %d "%(avg_train_len,max_train_len,min_train_len))
-    print("Dev: avg_seq_length = %.3f, max seq length = %d, min seq length = %d " % (avg_dev_len, max_dev_len, min_dev_len))
+    print("Dev: avg_seq_length = %.3f, max seq length = %d, min seq length = %d " % (avg_val_len, max_val_len, min_val_len))
     print("Test: avg_seq_length = %.3f, max seq length = %d, min seq length = %d " % (avg_test_len, max_test_len, min_test_len))
 
     vocab = build_vocabulary(train_tok, max_freq=params.max_freq, min_freq=params.min_freq)

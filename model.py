@@ -36,10 +36,7 @@ class RNN(object):
         if self.mode != tf.contrib.learn.ModeKeys.TRAIN:
             # Generate predictions (for INFER and EVAL mode)
             self.logits = res[0]
-            self.predictions = {
-                    "classes": tf.argmax(input=tf.nn.softmax(self.logits), axis=1),
-                    "probabilities": tf.nn.softmax(self.logits)
-                }
+            self.predictions = tf.nn.softmax(self.logits)
         ## Learning rate
         print("  start_decay_step=%d, learning_rate=%g, decay_steps %d,"
                   " decay_factor %g" % (hparams.start_decay_step, hparams.learning_rate,
@@ -81,6 +78,10 @@ class RNN(object):
                 tf.summary.scalar("lr", self.learning_rate),
                 tf.summary.scalar("train_loss", self.train_loss),] + grad_norm_summary
             )
+        if self.mode != tf.contrib.learn.ModeKeys.INFER:
+            self.logits = res[0]
+            correct_pred = tf.equal(tf.argmax(tf.nn.softmax(self.logits), 1), tf.cast(self.targets,tf.int64))
+            self.accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
         # Saver. As argument, we give the variables that are going to be saved and restored.
         # The Saver op will save the variables of the graph within it is defined. All graphs (train/eval/predict) have
         # have a Saver operator.
@@ -92,7 +93,7 @@ class RNN(object):
             print("  %s, %s" % (param.name, str(param.get_shape())))
         import numpy as np
         total_params = np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
-        print(total_params)
+        print("Total number of parameters: %d"%total_params)
 
 
     def build_graph(self, hparams):
@@ -183,8 +184,8 @@ class RNN(object):
 
     def compute_loss(self, logits):
         target_output = self.targets
-        if self.time_major:
-            target_output = tf.transpose(target_output)
+        # if self.time_major:
+        #     target_output = tf.transpose(target_output)
         crossent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=target_output, logits=logits)
         loss = tf.reduce_sum(crossent)/tf.to_float(self.batch_size)
         return loss
@@ -197,14 +198,15 @@ class RNN(object):
                         self.train_summary,
                         self.global_step,
                         self.learning_rate,
-                        self.batch_size],
+                        self.batch_size,
+                        self.accuracy],
                         options=options,
                         run_metadata=run_metadata
                         )
 
     def eval(self, sess):
         assert self.mode == tf.contrib.learn.ModeKeys.EVAL
-        return sess.run([self.eval_loss,self.batch_size])
+        return sess.run([self.eval_loss,self.accuracy,self.batch_size])
 
 
     def predict(self, sess):

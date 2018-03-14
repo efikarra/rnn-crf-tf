@@ -41,15 +41,15 @@ def train(hparams):
     summary_writer = tf.summary.FileWriter(os.path.join(out_dir,summary_name),train_model.graph)
 
     #run first evaluation before starting training
-    dev_loss = run_evaluation(eval_model, eval_sess, model_dir, hparams.val_input_path, hparams.val_target_path, input_emb_weights, summary_writer)
-    train_loss = run_evaluation(eval_model, eval_sess, model_dir, hparams.train_input_path, hparams.train_target_path,
+    val_loss, val_acc = run_evaluation(eval_model, eval_sess, model_dir, hparams.val_input_path, hparams.val_target_path, input_emb_weights, summary_writer)
+    train_loss, train_acc = run_evaluation(eval_model, eval_sess, model_dir, hparams.train_input_path, hparams.train_target_path,
                               input_emb_weights, summary_writer)
-    print("Dev loss before training: %.3f" % dev_loss)
-    print("Train loss before training: %.3f" % train_loss)
+    print("Before training: Val loss %.3f, Val accuracy %.3f." % (val_loss,val_acc))
+    print("Before training: Train loss %.3f Train acc %.3f" % (train_loss,train_acc))
     # Start training
     start_train_time=time.time()
     avg_batch_time=0.0
-    batch_loss, epoch_loss=0.0, 0.0
+    batch_loss, epoch_loss, epoch_accuracy=0.0, 0.0,0.0
     batch_count=0.0
 
     #initialize train iterator in train_sess
@@ -59,8 +59,11 @@ def train(hparams):
     dev_losses=[]
 
     # vars to compute timeline of operations
-    options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-    run_metadata = tf.RunMetadata()
+    options = None
+    run_metadata = None
+    if hparams.timeline:
+        options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        run_metadata = tf.RunMetadata()
     #train the model for num_epochs. One epoch means a pass through the whole train dataset, i.e., through all the batches.
     step=0
     for epoch in range(num_epochs):
@@ -68,21 +71,23 @@ def train(hparams):
         while True:
             start_batch_time = time.time()
             try:
-                # this call will run operations of train graph in train_sess
-                if step%10==0:
-                    step_result = loaded_train_model.train(train_sess,options=options,run_metadata=run_metadata)
+                #compute pipeline
+                if hparams.timeline and step%10==0 :
+                    # this call will run operations of train graph in train_sess
+                    step_result = loaded_train_model.train(train_sess, options=options, run_metadata=run_metadata)
                     summary_writer.add_run_metadata(run_metadata, 'step%d' % step)
-                    #compute pipeline
-                    if hparams.timeline:
-                        fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-                        chrome_trace = fetched_timeline.generate_chrome_trace_format()
-                        with open('timelines/timeline_02_step_%d.json' % step, 'w') as f:
-                            f.write(chrome_trace)
+                    fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+                    chrome_trace = fetched_timeline.generate_chrome_trace_format()
+                    if not tf.gfile.Exists(os.path.join(out_dir,'timelines/timeline_02_step_%d.json')): tf.gfile.MakeDirs(out_dir)
+                    with open(os.path.join(out_dir,'timelines/timeline_02_step_%d.json') % step, 'w') as f:
+                        f.write(chrome_trace)
                 else: step_result = loaded_train_model.train(train_sess,options=None,run_metadata=None)
 
-                (_, batch_loss, batch_summary, global_step, learning_rate, batch_size)=step_result
+                (_, batch_loss, batch_summary, global_step, learning_rate, batch_size,batch_accuracy)=step_result
                 avg_batch_time += (time.time()-start_batch_time)
+                print(batch_loss)
                 epoch_loss += batch_loss
+                epoch_accuracy += batch_accuracy
                 batch_count += 1
                 step+=1
             except tf.errors.OutOfRangeError:
@@ -93,28 +98,32 @@ def train(hparams):
         # average epoch loss and epoch time over batches
         epoch_loss /= batch_count
         avg_batch_time /= batch_count
+        epoch_accuracy /= batch_count
         print("Number of batches: %d"%batch_count)
         #print results if the current epoch is a print results epoch
         if (epoch +1) % num_ckpt_epochs == 0:
             print("Saving checkpoint...")
             model_helper.add_summary(summary_writer, "train_loss", epoch_loss)
+            model_helper.add_summary(summary_writer, "train_accuracy", epoch_accuracy)
             # save checkpoint. We save the values of the variables of the train graph.
             # train_sess is the session in which the train graph was launched.
             # global_step parameter is optional and is appended to the name of the checkpoint.
             loaded_train_model.saver.save(train_sess, os.path.join(out_dir, "rnn.ckpt"), global_step=epoch)
 
             print("Results: ")
-            dev_loss = run_evaluation(eval_model, eval_sess, model_dir, hparams.val_input_path, hparams.val_target_path, input_emb_weights, summary_writer)
+            val_loss,val_accuracy = run_evaluation(eval_model, eval_sess, model_dir, hparams.val_input_path, hparams.val_target_path, input_emb_weights, summary_writer)
             # tr_loss = run_evaluation(eval_model, eval_sess, model_dir, hparams.train_input_path, hparams.train_target_path, input_emb_weights, summary_writer)
             # print("check %.3f:"%tr_loss)
             print(" epoch %d lr %g "
-                  "train_loss %.3f, dev_loss %.3f avg_batch_time %f"%
-                  (epoch, loaded_train_model.learning_rate.eval(session=train_sess), epoch_loss, dev_loss,
-                                 avg_batch_time))
+                  "train_loss %.3f, val_loss %.3f, train_accuracy %.3f, val accuracy %.3f, avg_batch_time %f"%
+                  (epoch, loaded_train_model.learning_rate.eval(session=train_sess), epoch_loss, val_loss, epoch_accuracy,
+                   val_accuracy, avg_batch_time))
             train_losses.append(epoch_loss)
-            dev_losses.append(dev_loss)
+            dev_losses.append(val_loss)
         batch_count = 0.0
         avg_batch_time = 0.0
+        epoch_loss = 0.0
+        epoch_accuracy = 0.0
 
     # save final model
     loaded_train_model.saver.save(train_sess,os.path.join(out_dir,"rnn.ckpt"), global_step=num_epochs)
@@ -133,8 +142,9 @@ def run_evaluation(eval_model, eval_sess, model_dir, input_eval_file, output_eva
         eval_model.input_file_placeholder: input_eval_file,
         eval_model.output_file_placeholder: output_eval_file
     }
-    dev_loss = evaluation.eval(loaded_eval_model, eval_sess, eval_model.iterator, eval_iterator_feed_dict)
-    model_helper.add_summary(summary_writer, "dev_loss", dev_loss)
-    return dev_loss
+    val_loss,val_accuracy = evaluation.eval(loaded_eval_model, eval_sess, eval_model.iterator, eval_iterator_feed_dict)
+    model_helper.add_summary(summary_writer, "val_loss", val_loss)
+    model_helper.add_summary(summary_writer, "val_accuracy", val_accuracy)
+    return val_loss,val_accuracy
 
 

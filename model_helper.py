@@ -137,21 +137,41 @@ def gradient_clip(gradients, max_gradient_norm):
 def run_batch_evaluation(model, session):
     batch_count=0.0
     loss=0.0
+    accuracy = 0.0
     while True:
         try:
-            batch_loss,batch_size=model.eval(session)
+            batch_loss,batch_accuracy,batch_size=model.eval(session)
             loss+=batch_loss
+            accuracy+=batch_accuracy
             batch_count+=1
         except tf.errors.OutOfRangeError:
             break
 
     loss /= batch_count
-    return loss
+    accuracy /= batch_count
+    return loss, accuracy
 
+
+def run_batch_prediction(model, session):
+    concat_predictions = None
+    batch_count = 0
+    while True:
+        try:
+            batch_count += 1
+            predictions = model.predict(sess)
+            if concat_predictions is None:
+                concat_predictions = predictions
+            else:
+                concat_predictions = np.append(concat_predictions, predictions, axis=0)
+
+        except tf.errors.OutOfRangeError:
+            break
+    return concat_predictions
 
 def load_model(model, session, name, ckpt):
     start_time=time.time()
     #initialize all read-only tables of the graph, e.g., vocabulary tables or embedding tables.
+    session.run(tf.local_variables_initializer())
     session.run(tf.tables_initializer())
     model.saver.restore(session, ckpt)
     print("loaded %s model parameters from %s, time %.2fs" % (name, ckpt, time.time()-start_time))
@@ -164,8 +184,9 @@ def create_or_load_model(model, session, name, model_dir, input_emb_weights=None
         model = load_model(model, session, name, latest_ckpt)
     else:
         start_time = time.time()
-        #initialize all global variables in the graph, e.g., the model's weights.
+        #initialize all global and local variables in the graph, e.g., the model's weights.
         session.run(tf.global_variables_initializer())
+        session.run(tf.local_variables_initializer())
         # initialize all read-only tables of the graph, e.g., vocabulary tables or embedding tables.
         session.run(tf.tables_initializer())
         if input_emb_weights is not None:

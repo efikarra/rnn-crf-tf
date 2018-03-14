@@ -7,7 +7,6 @@ UNK="<unk>"
 PAD="<pad>"
 
 def check_vocab(vocab_file, out_dir, unk=None, pad=None):
-    print (vocab_file)
     if tf.gfile.Exists(vocab_file):
         print(" Vocab file %s exists "% vocab_file)
         vocab= []
@@ -25,7 +24,7 @@ def check_vocab(vocab_file, out_dir, unk=None, pad=None):
                             " are not [%s, %s]" %
                             (vocab[0], vocab[1], unk, pad))
             vocab = [unk, pad] + vocab
-            vocab_size += 3
+            vocab_size += 2
             new_vocab_file = os.path.join(out_dir, os.path.basename(vocab_file))
             with codecs.getwriter("utf-8")(tf.gfile.GFile(new_vocab_file, "wb")) as f:
                 newline = ''
@@ -43,7 +42,6 @@ def check_vocab(vocab_file, out_dir, unk=None, pad=None):
             vocab_file = new_vocab_file
     else:
         raise ValueError("vocab_file does not exist.")
-
     vocab_size = len(vocab)
     return vocab_size, vocab_file
 

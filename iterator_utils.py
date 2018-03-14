@@ -36,7 +36,7 @@ def get_iterator(input_dataset, output_dataset, input_vocab_table, batch_size, r
             padded_shapes=(tf.TensorShape([None]),
                            tf.TensorShape([]),
                            tf.TensorShape([])),
-            padding_values=(pad_id,pad_id,pad_id)
+            padding_values=(pad_id,0,0)
         )
     batched_dataset = batching_func(input_output_dataset)
     # batched_dataset = input_output_dataset.batch(batch_size)
@@ -55,7 +55,6 @@ def get_iterator_infer(input_dataset, input_vocab_table, batch_size, random_seed
     if not output_buffer_size: output_buffer_size = batch_size * 1000
     pad_id = tf.cast(input_vocab_table.lookup(tf.constant(pad)),tf.int32)
 
-    input_dataset = input_dataset.shuffle(output_buffer_size, random_seed)
     input_dataset = input_dataset.map(lambda inp: tf.string_split([inp]).values)
     # remove input sequences of zero length
     input_dataset = input_dataset.filter(lambda inp: tf.size(inp) > 0)

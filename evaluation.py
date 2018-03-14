@@ -9,28 +9,14 @@ import utils
 def eval(model, sess, iterator, iterator_feed_dict):
     # initialize the iterator with the data on which we will evaluate the model.
     sess.run(iterator.initializer, feed_dict=iterator_feed_dict)
-    loss = model_helper.run_batch_evaluation(model, sess)
-    return loss
+    loss, accuracy = model_helper.run_batch_evaluation(model, sess)
+    return loss, accuracy
 
 
 def predict(model, sess, iterator, iterator_feed_dict):
     sess.run(iterator.initializer, feed_dict=iterator_feed_dict)
-    concat_predictions = {}
-    batch_count = 0
-    while True:
-        try:
-            batch_count += 1
-            predictions = model.predict(sess)
-            if "probabilities" not in concat_predictions:
-                concat_predictions["probabilities"]=predictions["probabilities"]
-            else: concat_predictions["probabilities"]=np.append(concat_predictions["probabilities"], predictions["probabilities"], axis=0)
-            if "classes" not in concat_predictions:
-                concat_predictions["classes"]=predictions["classes"]
-            else: concat_predictions["classes"]=np.append(concat_predictions["classes"],predictions["classes"], axis=0)
-
-        except tf.errors.OutOfRangeError:
-            break
-    return concat_predictions
+    predictions = model_helper.run_batch_prediction(model, sess)
+    return predictions
 
 
 def evaluate(hparams, ckpt):
@@ -46,8 +32,8 @@ def evaluate(hparams, ckpt):
             eval_model.input_file_placeholder: hparams.eval_input_path,
             eval_model.output_file_placeholder: hparams.eval_target_path
         }
-        eval_loss = eval(loaded_eval_model, eval_sess, eval_model.iterator, iterator_feed_dict)
-        print("Eval loss: %.3f"%eval_loss)
+        eval_loss, eval_accuracy = eval(loaded_eval_model, eval_sess, eval_model.iterator, iterator_feed_dict)
+        print("Eval loss: %.3f, Eval accuracy: %.3f"%(eval_loss,eval_accuracy))
     print("Starting predictions:")
 
     prediction_model = model_helper.create_infer_model(model_creator, hparams, tf.contrib.learn.ModeKeys.INFER)
@@ -59,8 +45,7 @@ def evaluate(hparams, ckpt):
         }
     predictions=predict(loaded_prediction_model, prediction_sess, prediction_model.iterator, iterator_feed_dict)
     print("Saving predictions:")
-    np.savetxt(os.path.join(hparams.eval_output_folder, "classes.txt"), predictions["classes"])
-    np.savetxt(os.path.join(hparams.eval_output_folder, "probabilities.txt"), predictions["probabilities"])
+    np.savetxt(os.path.join(hparams.eval_output_folder, "predictions.txt"), predictions)
     # save_labels(predictions["classes"], os.path.join(hparams.eval_output_folder, "classes"))
     # save_probabilities(predictions["probabilities"], os.path.join(hparams.eval_output_folder, "probabilities"))
 
