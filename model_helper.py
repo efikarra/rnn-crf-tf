@@ -158,7 +158,7 @@ def run_batch_prediction(model, session):
     while True:
         try:
             batch_count += 1
-            predictions = model.predict(sess)
+            predictions = model.predict(session)
             if concat_predictions is None:
                 concat_predictions = predictions
             else:
