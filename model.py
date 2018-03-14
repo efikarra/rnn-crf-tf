@@ -136,8 +136,6 @@ class RNN(object):
                                                          dtype=dtype,
                                                          sequence_length=self.input_sequence_length,
                                                          time_major=self.time_major)
-                if len(last_hidden_sate)==2:
-                    last_hidden_sate=last_hidden_sate.h
             elif hparams.rnn_type == "bi":
                 num_bi_layers = int(hparams.num_layers / 2)
                 print("num_bi_layers %d"%num_bi_layers)
