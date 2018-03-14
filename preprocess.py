@@ -51,6 +51,13 @@ def avg_seq_length(seq_tok):
     return sum_len/len(seq_tok),max,min
 
 
+def convert_to_ovr(class_one, input_labels):
+    ovr_labels = []
+    for l in input_labels:
+        ovr_labels.append('1' if int(l)==class_one else '0')
+    return ovr_labels
+
+
 def preprocess_data(params):
     data_folder = params.data_folder
     train_input_file = params.train_input_file
@@ -59,13 +66,6 @@ def preprocess_data(params):
     val_target_file = params.dev_target_file
     test_input_file = params.test_input_file
     test_target_file = params.test_target_file
-    # data_folder = "experiments/data"
-    # train_input_file="train_input_sgmt.txt"
-    # train_target_file = "train_input_sgmt.txt"
-    # dev_input_file = "val_input_sgmt.txt"
-    # dev_target_file = "val_input_sgmt.txt"
-    # test_input_file = "test_input_sgmt.txt"
-    # test_target_file = "test_input_sgmt.txt"
 
     train_input=load_data_from_file(os.path.join(data_folder,train_input_file))
     train_target = load_data_from_file(os.path.join(data_folder,train_target_file))
@@ -101,6 +101,18 @@ def preprocess_data(params):
     vocab = build_vocabulary(train_tok, max_freq=params.max_freq, min_freq=params.min_freq)
     print("Vocab size: %d " % len(vocab))
     save_to_file(os.path.join(data_folder,str(params.max_freq)+str(params.min_freq)+params.vocab_file), vocab)
+
+    create_ovr_data(params, train_target, val_target, test_target, range(32))
+
+
+def create_ovr_data(params, train_target, val_target, test_target,classes):
+    for c in classes:
+        train_target_ovr = convert_to_ovr(class_one=c, input_labels=train_target)
+        val_target_ovr = convert_to_ovr(class_one=c, input_labels=val_target)
+        test_target_ovr = convert_to_ovr(class_one=c, input_labels=test_target)
+        save_to_file(os.path.join("experiments/ovr_targets",str(c)+"_"+params.train_target_file), train_target_ovr)
+        save_to_file(os.path.join("experiments/ovr_targets",str(c)+"_"+params.dev_target_file), val_target_ovr)
+        save_to_file(os.path.join("experiments/ovr_targets",str(c)+"_"+params.test_target_file), test_target_ovr)
 
 
 def add_arguments(parser):

@@ -123,7 +123,7 @@ class RNN(object):
             self.inputs=tf.transpose(self.inputs)
 
         emb_inp = tf.nn.embedding_lookup(self.input_embedding, self.inputs)
-        last_hidden_sate =[]
+        last_hidden_sate = None
         # RNN outputs: [max_time, batch_size, num_units]
         with tf.variable_scope("rnn") as scope:
             dtype=scope.dtype
@@ -132,14 +132,16 @@ class RNN(object):
                 cell = model_helper.create_rnn_cell(hparams.unit_type, hparams.num_units, hparams.num_layers,
                                                     hparams.forget_bias, hparams.in_to_hidden_dropout, self.mode)
                 # encoder_state --> a Tensor of shape `[batch_size, cell.state_size]` or a list of such Tensors for many layers
-                _, last_hidden_sate = tf.nn.dynamic_rnn(cell, emb_inp,
+                rnn_outputs, last_hidden_sate = tf.nn.dynamic_rnn(cell, emb_inp,
                                                          dtype=dtype,
                                                          sequence_length=self.input_sequence_length,
                                                          time_major=self.time_major)
+                if len(last_hidden_sate)==2:
+                    last_hidden_sate=last_hidden_sate.h
             elif hparams.rnn_type == "bi":
                 num_bi_layers = int(hparams.num_layers / 2)
                 print("num_bi_layers %d"%num_bi_layers)
-                _, bi_last_hidden_state=self._build_bidirectional_rnn(emb_inp,dtype,hparams,num_bi_layers)
+                bi_outputs, bi_last_hidden_state=self._build_bidirectional_rnn(emb_inp,dtype,hparams,num_bi_layers)
                 # if the encoder has 1 layer per bi-rnn, it means that it has 1 fwd and 1 bwd layers -> in total it has 2 layers.
                 # and every fwd and bwd layer has enc_units each -> in total 2*enc_units
                 if num_bi_layers == 1:

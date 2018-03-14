@@ -16,8 +16,8 @@ def compute_accuracy(y_true, y_pred):
     return accuracy
 
 
-def roc_auc(predictions, targets):
-    auc = roc_auc_score(y_true=targets, y_score=predictions)
+def roc_auc(y_pred, y_true):
+    auc = roc_auc_score(y_true=y_true, y_score=y_pred)
     return auc
 
 def compute_classification_report(predictions, targets):
@@ -49,6 +49,9 @@ def process_results(params):
 
     compute_classification_report(preds_labels, targets)
 
+    if len(np.unique(targets))==2:
+        auc_score = roc_auc(y_true=targets, y_pred=preds_labels)
+        print("AUC score %.3f" % auc_score)
 
 def add_arguments(parser):
     parser.register("type", "bool", lambda v: v.lower() == "true")
