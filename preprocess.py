@@ -107,7 +107,7 @@ def add_arguments(parser):
     parser.add_argument("--test_target_file", type=str, default=None)
     parser.add_argument("--vocab_file", type=str, default=None)
     parser.add_argument("--min_freq", type=float, default=0.0)
-    parser.add_argument("--max_freq", type=float, default=1.0)
+    parser.add_argument("--max_freq", type=float, default=0.0)
 
 def main():
     parser = argparse.ArgumentParser()
