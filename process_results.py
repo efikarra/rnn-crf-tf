@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 import matplotlib
 # import seaborn as sns
-# matplotlib.rcParams['font.sans-serif'] = 'SimHei'
-# matplotlib.rcParams['font.serif'] = 'SimHei'
-# matplotlib.rcParams['font.family'] = "sans-serif"
-# matplotlib.use('Agg')
+matplotlib.rcParams['font.sans-serif'] = 'SimHei'
+matplotlib.rcParams['font.serif'] = 'SimHei'
+matplotlib.rcParams['font.family'] = "sans-serif"
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import argparse
 
