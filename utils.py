@@ -75,7 +75,7 @@ def ensure_compatible_hparams(hparams,default_hparams,flags):
     # Make sure that the loaded model has latest values for the below keys
     updated_keys = [
         "out_dir","num_ckpt_epochs","num_epochs","gpu","batch_size","eval_input_path","eval_target_path",
-        "eval_output_folder","eval_batch_size","predict_batch_size"
+        "eval_output_folder","eval_batch_size","predict_batch_size","predictions_file"
     ]
     for key in updated_keys:
         if key in default_config and getattr(hparams,key) != default_config[key]:
