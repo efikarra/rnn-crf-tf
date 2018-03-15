@@ -60,8 +60,12 @@ def process_results(params):
     if len(np.unique(targets))==2:
         auc_score = roc_auc(y_true=targets, y_pred=predictions[:,1])
         print("AUC score %.3f" % auc_score)
+        with open("auc_scores.txt","a") as f:
+            f.write(str(auc_score)+"\n")
 
         R_prec = R_precision(y_true=targets, y_pred=predictions[:,1])
+        with open("r_precisions.txt","a") as f:
+            f.write(str(R_prec)+"\n")
         print("R_precision score %.3f" % R_prec)
 
 def add_arguments(parser):
