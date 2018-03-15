@@ -2,13 +2,22 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_auc_sco
 import numpy as np
 import pandas as pd
 import matplotlib
-import seaborn as sns
-matplotlib.rcParams['font.sans-serif'] = 'SimHei'
-matplotlib.rcParams['font.serif'] = 'SimHei'
-matplotlib.rcParams['font.family'] = "sans-serif"
+# import seaborn as sns
+# matplotlib.rcParams['font.sans-serif'] = 'SimHei'
+# matplotlib.rcParams['font.serif'] = 'SimHei'
+# matplotlib.rcParams['font.family'] = "sans-serif"
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import argparse
+
+
+def R_precision(y_true, y_pred):
+    R = np.sum(y_true)
+    trueidxs = np.where(y_true)[0]
+    retrieved_R_docs = np.argsort(y_pred)[::-1][:int(R)]
+
+    n_true = len(set(retrieved_R_docs).intersection(set(trueidxs)))
+    return n_true / float(R)
 
 
 def compute_accuracy(y_true, y_pred):
@@ -27,11 +36,11 @@ def compute_classification_report(predictions, targets):
     df_cm = pd.DataFrame(conf_matrix)
                          # index=target_names,
     #                      columns=target_names)
-    plt.figure(figsize=(10, 7))
-    sns.heatmap(df_cm, annot=True)
-    plt.ylabel('Actual')
-    plt.xlabel('Predicted')
-    plt.show()
+    # plt.figure(figsize=(10, 7))
+    # sns.heatmap(df_cm, annot=True)
+    # plt.ylabel('Actual')
+    # plt.xlabel('Predicted')
+    # plt.show()
 
 def labels_from_predictions(predictions):
     return np.argmax(predictions, axis=1)
@@ -51,6 +60,9 @@ def process_results(params):
     if len(np.unique(targets))==2:
         auc_score = roc_auc(y_true=targets, y_pred=predictions[:,1])
         print("AUC score %.3f" % auc_score)
+
+        R_prec = R_precision(y_true=targets, y_pred=preds_labels)
+        print("R_precision score %.3f" % R_prec)
 
 def add_arguments(parser):
     parser.register("type", "bool", lambda v: v.lower() == "true")
