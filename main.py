@@ -156,6 +156,7 @@ def create_hparams(flags):
         eval_target_path=flags.eval_target_path,
         eval_batch_size=flags.eval_batch_size,
         predict_batch_size=flags.predict_batch_size,
+        predictions_filename = flags.predictions_filename,
         # Other
         random_seed=flags.random_seed,
         log_device_placement=flags.log_device_placement,
