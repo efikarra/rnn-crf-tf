@@ -104,6 +104,8 @@ def add_arguments(parser):
                         help="Input file path to perform evaluation and/or prediction.")
     parser.add_argument("--eval_target_path", type=str, default=None,
                         help="Output file path to perform evaluation and prediction.")
+    parser.add_argument("--predictions_filename", type=str, default="predictions.txt",
+                        help="Filename to save predictions.")
 
 
 def create_hparams(flags):
