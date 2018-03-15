@@ -80,12 +80,12 @@ def preprocess_data(params):
     print("Test size: %d " % len(test_input))
     print("Test labels: %d " % len(test_target))
 
-    import json
-    lid2lab = json.load(open("experiments/data/lid2lab.json"))
-    lab2shortname = json.load(open("experiments/data/lab2shortname.json"))
-    for i in range(10):
-        print train_input[i]
-        print lab2shortname[lid2lab[int(train_target[i])]]
+    # import json
+    # lid2lab = json.load(open("experiments/data/lid2lab.json"))
+    # lab2shortname = json.load(open("experiments/data/lab2shortname.json"))
+    # for i in range(10):
+    #     print train_input[i]
+    #     print lab2shortname[lid2lab[int(train_target[i])]]
 
     train_tok=tokenize(train_input)
     val_tok = tokenize(val_input)
