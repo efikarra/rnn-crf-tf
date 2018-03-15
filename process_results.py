@@ -61,7 +61,7 @@ def process_results(params):
         auc_score = roc_auc(y_true=targets, y_pred=predictions[:,1])
         print("AUC score %.3f" % auc_score)
 
-        R_prec = R_precision(y_true=targets, y_pred=preds_labels)
+        R_prec = R_precision(y_true=targets, y_pred=predictions[:,1])
         print("R_precision score %.3f" % R_prec)
 
 def add_arguments(parser):
