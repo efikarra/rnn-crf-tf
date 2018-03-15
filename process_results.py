@@ -2,11 +2,11 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_auc_sco
 import numpy as np
 import pandas as pd
 import matplotlib
-# import seaborn as sns
+import seaborn as sns
 matplotlib.rcParams['font.sans-serif'] = 'SimHei'
 matplotlib.rcParams['font.serif'] = 'SimHei'
 matplotlib.rcParams['font.family'] = "sans-serif"
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import argparse
 
@@ -16,7 +16,7 @@ def compute_accuracy(y_true, y_pred):
     return accuracy
 
 
-def roc_auc(y_pred, y_true):
+def roc_auc(y_true,y_pred):
     auc = roc_auc_score(y_true=y_true, y_score=y_pred)
     return auc
 
@@ -24,14 +24,14 @@ def compute_classification_report(predictions, targets):
     conf_matrix = confusion_matrix(targets, predictions)
     print "\nConfusion matrix:\n", conf_matrix
     print(classification_report(targets, predictions))
-    # df_cm = pd.DataFrame(conf_matrix)
-    #                      # index=target_names,
-    # #                      columns=target_names)
-    # plt.figure(figsize=(10, 7))
-    # sns.heatmap(df_cm, annot=True)
-    # plt.ylabel('Actual')
-    # plt.xlabel('Predicted')
-    # plt.show()
+    df_cm = pd.DataFrame(conf_matrix)
+                         # index=target_names,
+    #                      columns=target_names)
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(df_cm, annot=True)
+    plt.ylabel('Actual')
+    plt.xlabel('Predicted')
+    plt.show()
 
 def labels_from_predictions(predictions):
     return np.argmax(predictions, axis=1)
@@ -39,7 +39,6 @@ def labels_from_predictions(predictions):
 def process_results(params):
 
     predictions = np.loadtxt(params.preds_file)
-    print np.sum(predictions, axis=1)
     preds_labels = labels_from_predictions(predictions)
     targets = np.loadtxt(params.targets_file)
     targets = targets.astype(int)
@@ -50,7 +49,7 @@ def process_results(params):
     compute_classification_report(preds_labels, targets)
 
     if len(np.unique(targets))==2:
-        auc_score = roc_auc(y_true=targets, y_pred=preds_labels)
+        auc_score = roc_auc(y_true=targets, y_pred=predictions[:,1])
         print("AUC score %.3f" % auc_score)
 
 def add_arguments(parser):
