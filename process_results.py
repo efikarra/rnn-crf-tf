@@ -57,7 +57,7 @@ def process_results(params):
 
     compute_classification_report(preds_labels, targets)
 
-    if len(np.unique(targets))==2:
+    if len(np.unique(targets))<=2:
         auc_score = roc_auc(y_true=targets, y_pred=predictions[:,1])
         print("AUC score %.3f" % auc_score)
         with open("auc_scores.txt","a") as f:
