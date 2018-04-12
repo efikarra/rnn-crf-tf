@@ -1,0 +1,1 @@
+{"O": 1, "B-geo-loc": 2, "B-facility": 3, "I-facility": 4, "B-movie": 5, "I-movie": 6, "B-company": 7, "B-product": 8, "B-person": 9, "B-other": 10, "I-other": 11, "B-sportsteam": 12, "I-sportsteam": 13, "I-product": 14, "I-company": 15, "I-person": 16, "B-tvshow": 17, "B-musicartist": 18, "I-musicartist": 19, "I-tvshow": 20, "I-geo-loc": 21}
