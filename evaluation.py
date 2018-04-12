@@ -1,10 +1,8 @@
 import tensorflow as tf
 import model_helper
 import model
-import os
 import numpy as np
 import utils
-
 
 def eval(model, sess, iterator, iterator_feed_dict):
     # initialize the iterator with the data on which we will evaluate the model.
@@ -14,13 +12,14 @@ def eval(model, sess, iterator, iterator_feed_dict):
 
 
 def predict(model, sess, iterator, iterator_feed_dict):
+    # initialize the iterator with the data on which we will perform predictions.
     sess.run(iterator.initializer, feed_dict=iterator_feed_dict)
-    predictions = model_helper.run_batch_prediction(model, sess)
-    return predictions
+    predictions , input_sequence_length= model_helper.run_batch_prediction(model, sess)
+    return predictions, input_sequence_length
 
 
 def evaluate(hparams, ckpt):
-    if hparams.model_architecture == "rnn-model": model_creator = model.RNN
+    if hparams.model_architecture == "simple_rnn": model_creator = model.RNN
     else: raise ValueError("Unknown model architecture. Only simple_rnn is supported so far.")
 
     if hparams.val_target_path:
@@ -43,10 +42,13 @@ def evaluate(hparams, ckpt):
         iterator_feed_dict = {
             prediction_model.input_file_placeholder: hparams.eval_input_path,
         }
-    predictions=predict(loaded_prediction_model, prediction_sess, prediction_model.iterator, iterator_feed_dict)
+    predictions, input_sequence_length=predict(loaded_prediction_model, prediction_sess, prediction_model.iterator, iterator_feed_dict)
     print("Saving predictions:")
-    np.savetxt(os.path.join(hparams.eval_output_folder, hparams.predictions_filename), predictions)
-    # save_labels(predictions["classes"], os.path.join(hparams.eval_output_folder, "classes"))
-    # save_probabilities(predictions["probabilities"], os.path.join(hparams.eval_output_folder, "probabilities"))
-
+    labels = np.argmax(predictions, axis=predictions.shape[-1]-1)
+    with tf.gfile.GFile(hparams.eval_output_folder + "/" + hparams.predictions_filename, mode="w") as file:
+        newLine=""
+        for i,length in enumerate(input_sequence_length):
+            label_seq=labels[i][:length]
+            file.write(newLine+" ".join([str(l) for l in label_seq]))
+            newLine="\n"
 

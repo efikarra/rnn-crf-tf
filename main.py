@@ -13,50 +13,46 @@ def add_arguments(parser):
 
     # Data
     parser.add_argument("--train_input_path", type=str, default=None,
-                        help="Input file path.")
+                        help="Train input file path.")
     parser.add_argument("--train_target_path", type=str, default=None,
-                        help="Target file path.")
+                        help="Train target file path.")
     parser.add_argument("--val_input_path", type=str, default=None,
-                        help="Input file path for validation dataset.")
+                        help="Validation input file path for validation dataset.")
     parser.add_argument("--val_target_path", type=str, default=None,
-                        help="Target file path for validation dataset.")
+                        help="Validation target file path for validation dataset.")
     parser.add_argument("--out_dir", type=str, default=None,
                         help="Store log/model files.")
     parser.add_argument("--hparams_path", type=str, default=None,
-                        help=("Path to standard hparams json file that overrides"
-                              "hparams values from FLAGS."))
+                        help=("Path to hparams json file that overrides"
+                              "hparams values from flags."))
     parser.add_argument("--input_emb_file", type=str, default=None, help="Input embedding external file.")
 
     # Vocab
     parser.add_argument("--vocab_path", type=str, default=None, help="Vocabulary file path.")
     parser.add_argument("--unk", type=str, default="<unk>",
-                        help="Unknown symbol")
+                        help="Symbol for the unknown token.")
     parser.add_argument("--pad", type=str, default="<pad>",
-                        help="Padding symbol")
+                        help="Symbol for the pad symbol.")
 
     # Input sequence max length
     parser.add_argument("--input_max_len", type=int, default=None,
                         help="Max length of input sequence.")
 
     # network
-    parser.add_argument("--model_architecture", type=str, default="rnn-model",
-                        help="rnn-model. Model architecture.")
+    parser.add_argument("--model_architecture", type=str, default="simple_rnn",
+                        help="simple_rnn. Model architecture.")
     parser.add_argument("--init_weight", type=float, default=0.1, help="Initial weights from [-init_weight, init_weight].")
-    parser.add_argument("--num_units", type=int, default=32, help="Hidden units of rnn.")
+    parser.add_argument("--num_units", type=int, default=32, help="Number of hidden units of rnn.")
     parser.add_argument("--num_layers", type=int, default=1, help="Number of layers.")
     parser.add_argument("--in_to_hidden_dropout", type=float, default=0.0, help="dropout.")
-    parser.add_argument("--rnn_type", type=str, default="uni", help="uni | bi . For bi, we build enc_layers/2 bi-directional layers.")
     parser.add_argument('--unit_type', type=str, default="rnn",
                         help="rnn | lstm | gru | layer_norm_lstm.")
-    parser.add_argument("--time_major", type="bool", nargs="?", const=True,
-                        default=True,
-                        help="Whether to use time-major mode for dynamic RNN.")
     parser.add_argument("--n_classes", type=int, default=None, help="Number of output classes.")
     parser.add_argument("--forget_bias", type=float, default=1.0,
                         help="Forget bias for BasicLSTMCell.")
     parser.add_argument("--emb_size", type=int, default=32, help="Input embedding size.")
-    parser.add_argument("--input_emb_trainable", type=bool, default=True, help="Train embedding layer weights.")
-
+    parser.add_argument("--input_emb_trainable", type=bool, default=True, help="Whether to train embedding layer weights.")
+    parser.add_argument("--out_bias", type=bool, default=True, help="Whether to use bias at the output layer.")
     # training
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size.")
     parser.add_argument("--num_epochs", type=int, default=10, help="Number of epochs to train.")
@@ -95,7 +91,7 @@ def add_arguments(parser):
     parser.add_argument("--eval_output_folder", type=str, default=None,
                         help="Output folder to save evaluation data.")
     parser.add_argument("--ckpt", type=str, default=None,
-                        help="Checkpoint file.")
+                        help="Checkpoint file of trained model.")
     parser.add_argument("--eval_batch_size", type=int, default=32,
                         help="Batch size for evaluation mode.")
     parser.add_argument("--predict_batch_size", type=int, default=32,
@@ -130,13 +126,12 @@ def create_hparams(flags):
         init_weight=flags.init_weight,
         num_layers=flags.num_layers,
         in_to_hidden_dropout=flags.in_to_hidden_dropout,
-        rnn_type=flags.rnn_type,
-        time_major=flags.time_major,
         n_classes=flags.n_classes,
         forget_bias=flags.forget_bias,
         unit_type=flags.unit_type,
         input_emb_size=flags.emb_size,
         input_emb_trainable=flags.input_emb_trainable,
+        out_bias=flags.out_bias,
         # training
         batch_size=flags.batch_size,
         num_epochs=flags.num_epochs,
@@ -166,7 +161,10 @@ def create_hparams(flags):
 
 
 def extend_hparams(hparams):
+    """Extend training hparams."""
     hparams.add_hparam("input_emb_pretrain", hparams.input_emb_file is not None)
+    # Check if vocab has the unk and pad symbols as first words. If not, create a new vocab file with these symbols as
+    # the first two words.
     vocab_size, vocab_path = vocab_utils.check_vocab(hparams.vocab_path, hparams.out_dir,
                                                      unk=hparams.unk, pad=hparams.pad)
     hparams.add_hparam("vocab_size",vocab_size)
@@ -176,18 +174,12 @@ def extend_hparams(hparams):
     return hparams
 
 
-def create_or_load_hparams(out_dir, default_hparams, flags):
-    # if the out_dir already contains hparams file, load these hparams.
-    hparams = utils.load_hparams(out_dir)
-    if not hparams:
-        hparams = default_hparams
-        hparams = utils.maybe_parse_standard_hparams(
-            hparams, flags.hparams_path)
-        hparams = extend_hparams(hparams)
-    else:
-        #ensure that the loaded hparams and the command line hparams are compatible. If not, the command line hparams are overwritten!
-        hparams = utils.ensure_compatible_hparams(hparams, default_hparams, flags)
-
+def process_or_load_hparams(out_dir, default_hparams, hparams_path):
+    hparams = default_hparams
+    #if a Hparams path is given as argument, override the default_hparams.
+    hparams = utils.maybe_parse_standard_hparams(hparams, hparams_path)
+    # extend HParams to add some parameters necessary for the training.
+    hparams = extend_hparams(hparams)
     # Save HParams
     utils.save_hparams(out_dir, hparams)
 
@@ -197,31 +189,34 @@ def create_or_load_hparams(out_dir, default_hparams, flags):
     return hparams
 
 
-def run_main(flags, default_hparams, train_fn, evaluation_fn):
-    out_dir = flags.out_dir
+def run_main(default_hparams, train_fn, evaluation_fn):
+    out_dir = default_hparams.out_dir
     if not tf.gfile.Exists(out_dir): tf.gfile.MakeDirs(out_dir)
-    hparams = create_or_load_hparams(out_dir, default_hparams, flags)
-    # restrict tensoflow to run only in the specified gpu
+    hparams = process_or_load_hparams(out_dir, default_hparams, default_hparams.hparams_path)
+
+    # restrict tensoflow to run only in the specified gpu. This has no effect if run on a machine with no gpus. You dont care about gpus now.
     os.environ["CUDA_VISIBLE_DEVICES"] = str(hparams.gpu)
-    # if there is an evaluation output folder in the command line arguments
-    # we proceed with evaluation based on an existing model. Otherwise, we train a new model.
-    if FLAGS.eval_output_folder:
+    # if there is an evaluation output folder in the hparams we proceed with evaluation based on an existing model.
+    # Otherwise, we train a new model.
+    if hparams.eval_output_folder:
         # Evaluation
-        hparams.set_hparam("batch_size",hparams.eval_batch_size)
-        ckpt = FLAGS.ckpt
+        ckpt = hparams.ckpt
+        # if no checkpoint path is given as input, load the latest checkpoint from the output folder.
         if not ckpt:
             ckpt = tf.train.latest_checkpoint(out_dir)
         evaluation_fn(hparams, ckpt)
     else:
+        # Train
         train_fn(hparams)
 
 
-def main(unused_argv):
-    # create hparams from command line arguments
-    default_hparams = create_hparams(FLAGS)
+def main(flags):
+    # create HParams object from flags parameter.
+    # HParams is a class to hold a set of hyperparameters as name-value pairs.
+    default_hparams = create_hparams(flags)
     train_fn = train.train
     evaluation_fn = evaluation.evaluate
-    run_main(FLAGS, default_hparams, train_fn, evaluation_fn)
+    run_main(default_hparams, train_fn, evaluation_fn)
 
 
 if __name__ == '__main__':
@@ -229,5 +224,6 @@ if __name__ == '__main__':
     # add the possible command line arguments to the parser.
     add_arguments(parser)
     # parse command line args
-    FLAGS, unparsed = parser.parse_known_args()
-    tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+    flags, unparsed = parser.parse_known_args()
+    tf.app.run(main=main(flags), argv=[sys.argv[0]] + unparsed)
+

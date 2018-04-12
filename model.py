@@ -4,8 +4,7 @@ import model_helper
 
 class RNN(object):
 
-    def __init__(self, hparams, mode, iterator, input_vocab_table=None, reverse_input_vocab_table = None):
-        self.time_major=hparams.time_major
+    def __init__(self, hparams, mode, iterator, input_vocab_table=None):
         self.n_classes = hparams.n_classes
         self.vocab_size = hparams.vocab_size
         self.input_sequence_length = iterator.input_sequence_length
@@ -13,28 +12,26 @@ class RNN(object):
         self.inputs = iterator.input
         self.targets = iterator.target
         self.input_vocab_table = input_vocab_table
-        self.reverse_input_vocab_table = reverse_input_vocab_table
-        self.input_emb_pretrain = hparams.input_emb_pretrain
         self.batch_size = iterator.batch_size
 
-        #Initializer
+        #Initializer for all model parameters.
         initializer = tf.random_uniform_initializer(-hparams.init_weight,hparams.init_weight,seed=hparams.random_seed)
         tf.get_variable_scope().set_initializer(initializer)
-        # Create embedding layer
+        # Create embedding layer.
         self.input_embedding, self.input_emb_init, self.input_emb_placeholder = model_helper.create_embeddings\
                                       (vocab_size=self.vocab_size,
                                        emb_size=hparams.input_emb_size,
                                        emb_trainable=hparams.input_emb_trainable,
-                                       emb_pretrain=self.input_emb_pretrain)
+                                       emb_pretrain=hparams.input_emb_pretrain)
 
-        # build graph of main rnn model
+        # build graph of rnn model.
         res = self.build_graph(hparams)
         if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
             self.train_loss = res[1]
         elif self.mode == tf.contrib.learn.ModeKeys.EVAL:
             self.eval_loss=res[1]
         if self.mode != tf.contrib.learn.ModeKeys.TRAIN:
-            # Generate predictions (for INFER and EVAL mode)
+            # Generate predictions (for INFER and EVAL mode only)
             self.logits = res[0]
             self.predictions = tf.nn.softmax(self.logits)
         ## Learning rate
@@ -78,15 +75,15 @@ class RNN(object):
                 tf.summary.scalar("lr", self.learning_rate),
                 tf.summary.scalar("train_loss", self.train_loss),] + grad_norm_summary
             )
+        # Calculate accuracy metric.
         if self.mode != tf.contrib.learn.ModeKeys.INFER:
             self.logits = res[0]
-            correct_pred = tf.equal(tf.argmax(tf.nn.softmax(self.logits), 1), tf.cast(self.targets,tf.int64))
+            correct_pred = tf.equal(tf.argmax(tf.nn.softmax(self.logits), self.logits.get_shape()[-1]-1), tf.cast(self.targets,tf.int64))
             self.accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
         # Saver. As argument, we give the variables that are going to be saved and restored.
-        # The Saver op will save the variables of the graph within it is defined. All graphs (train/eval/predict) have
+        # The Saver op will save the variables of the graph within it is defined. All graphs (train/eval/predict)
         # have a Saver operator.
         self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=50)
-        # print trainable params
         # Print trainable variables
         print("# Trainable variables")
         for param in params:
@@ -100,8 +97,9 @@ class RNN(object):
         print ("Creating %s graph"%self.mode)
         dtype = tf.float32
         with tf.variable_scope("rnn_model",dtype=dtype):
-            rnn_last_states=self._build_rnn(hparams)
-            logits=self._build_output_layer(hparams, rnn_last_states)
+            rnn_outputs, last_hidden_sate = self.build_rnn(hparams)
+            # Unnormalized model outputs (before softmax!)
+            logits=self.build_output_layer(hparams, rnn_outputs)
             # compute loss
             if self.mode == tf.contrib.learn.ModeKeys.INFER:
                 loss = None
@@ -110,84 +108,36 @@ class RNN(object):
         return logits, loss
 
 
-    def _build_output_layer(self, hparams, rnn_outputs):
+    def build_output_layer(self, hparams, rnn_outputs):
         with tf.variable_scope("output_layer"):
-            out_layer = tf.layers.Dense(hparams.n_classes, use_bias=False, name="output_layer")
+            out_layer = tf.layers.Dense(hparams.n_classes, use_bias=hparams.out_bias, name="output_layer")
             logits = out_layer(rnn_outputs)
         return logits
 
 
-
-    def _build_rnn(self, hparams):
-        if self.time_major:
-            self.inputs=tf.transpose(self.inputs)
-
+    def build_rnn(self, hparams):
+        # Look up embedding: emb_imp.shape = [batch_size, max_seq_length, num_units]
         emb_inp = tf.nn.embedding_lookup(self.input_embedding, self.inputs)
-        last_hidden_sate = None
-        # RNN outputs: [max_time, batch_size, num_units]
+        # rnn_outputs.shape = [batch_size, max_seq_length, num_units]
         with tf.variable_scope("rnn") as scope:
             dtype=scope.dtype
-            # Look up embedding, emb_imp: [max_time, batch_size, num_units]
-            if hparams.rnn_type == "uni":
-                cell = model_helper.create_rnn_cell(hparams.unit_type, hparams.num_units, hparams.num_layers,
+            cell = model_helper.create_rnn_cell(hparams.unit_type, hparams.num_units, hparams.num_layers,
                                                     hparams.forget_bias, hparams.in_to_hidden_dropout, self.mode)
-                # encoder_state --> a Tensor of shape `[batch_size, cell.state_size]` or a list of such Tensors for many layers
-                rnn_outputs, last_hidden_sate = tf.nn.dynamic_rnn(cell, emb_inp,
+            # last_hidden_sate --> a Tensor of shape [batch_size, num_units] or a list of such Tensors for many layers
+            # rnn_outputs --> a Tensor of shape [batch_size, max_seq_length, num_units].
+            # sequence_length: It is used to zero-out outputs when past a batch element's true sequence length.
+            rnn_outputs, last_hidden_sate = tf.nn.dynamic_rnn(cell, emb_inp,
                                                          dtype=dtype,
-                                                         sequence_length=self.input_sequence_length,
-                                                         time_major=self.time_major)
-            elif hparams.rnn_type == "bi":
-                num_bi_layers = int(hparams.num_layers / 2)
-                print("num_bi_layers %d"%num_bi_layers)
-                bi_outputs, bi_last_hidden_state=self._build_bidirectional_rnn(emb_inp,dtype,hparams,num_bi_layers)
-                # if the encoder has 1 layer per bi-rnn, it means that it has 1 fwd and 1 bwd layers -> in total it has 2 layers.
-                # and every fwd and bwd layer has enc_units each -> in total 2*enc_units
-                if num_bi_layers == 1:
-                    last_hidden_sate = bi_last_hidden_state
-                else:
-                    # alternatively concat forward and backward states
-                    last_hidden_sate = []
-                    for layer_id in range(num_bi_layers):
-                        # bi_encoder_state[0] are all the enc_layers/2 fwd states.
-                        last_hidden_sate.append(bi_last_hidden_state[0][layer_id])  # forward
-                        # bi_encoder_state[1] are all the enc_layers/2 bwd states.
-                        last_hidden_sate.append(bi_last_hidden_state[1][layer_id])  # backward
-                        last_hidden_sate = tuple(last_hidden_sate)
-            else:
-                raise ValueError("Unknown rnn type: %s" % hparams.rnn_type)
-        return last_hidden_sate
+                                                         sequence_length=self.input_sequence_length)
+        return rnn_outputs, last_hidden_sate
 
-    def _build_bidirectional_rnn(self,inputs,dtype,hparams,num_bi_layers):
-        # Construct forward and backward cells.
-        #each one has num_bi_layers layers. Each layer has num_units.
-        fw_cell = model_helper.create_rnn_cell(hparams.unit_type, hparams.num_units, num_bi_layers,
-                                               hparams.forget_bias, hparams.in_to_hidden_dropout, self.mode)
-        bw_cell = model_helper.create_rnn_cell(hparams.unit_type, hparams.num_units, num_bi_layers,
-                                               hparams.forget_bias, hparams.in_to_hidden_dropout, self.mode)
-
-        # initial_state_fw, initial_state_bw are initialized to 0
-        # bi_outputs is a tuple (output_fw, output_bw) containing the forward and the backward rnn output Tensor
-        # bi_state is a tuple (output_state_fw, output_state_bw) with the forward and the backward final states.
-        # Each state has num_units.
-        # num_bi_layers>1, we have a list of num_bi_layers tuples.
-        bi_outputs,bi_state = tf.nn.bidirectional_dynamic_rnn(
-            fw_cell,
-            bw_cell,
-            inputs,
-            dtype=dtype,
-            sequence_length=self.input_sequence_length,
-            time_major=self.time_major)
-
-        # return fw and bw outputs,i.e., ([h1_fw;h1_bw],...,[hT_fw;hT_bw]) concatenated.
-        return tf.concat(bi_outputs,-1),bi_state
 
 
     def compute_loss(self, logits):
         target_output = self.targets
-        # if self.time_major:
-        #     target_output = tf.transpose(target_output)
         crossent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=target_output, logits=logits)
-        loss = tf.reduce_sum(crossent)/tf.to_float(self.batch_size)
+        target_weights = tf.sequence_mask(self.input_sequence_length, target_output.shape[1].value, dtype=logits.dtype)
+        loss = tf.reduce_sum(crossent * target_weights) / tf.to_float(self.batch_size)
         return loss
 
 
@@ -211,4 +161,4 @@ class RNN(object):
 
     def predict(self, sess):
         assert self.mode == tf.contrib.learn.ModeKeys.INFER
-        return sess.run(self.predictions)
+        return sess.run([self.predictions, self.input_sequence_length])

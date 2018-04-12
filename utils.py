@@ -1,15 +1,7 @@
-import io
-
-import numpy as np
 import tensorflow as tf
 import codecs
 import os
 import json
-
-
-def get_file_name(hparams):
-    filename = hparams.model_architecture+"_"+hparams.num_units+"_"+hparams.num_layers+"_"+hparams.in_to_hidden_dropout\
-               +"_"+hparams.rnn_type+"_"+hparams.unit_type+"_"+hparams.emb_size+"_"+hparams.batch_size
 
 
 def maybe_parse_standard_hparams(hparams, hparams_path):
@@ -57,32 +49,6 @@ def print_hparams(hparams, skip_patterns=None):
     if not skip_patterns or all(
         [skip_pattern not in key for skip_pattern in skip_patterns]):
       print("  %s=%s" % (key, str(values[key])))
-
-
-def ensure_compatible_hparams(hparams,default_hparams,flags):
-    """Make sure the loaded hparams is compatible with new changes."""
-    default_hparams = maybe_parse_standard_hparams(
-        default_hparams,flags.hparams_path)
-
-    # For compatible reason, if there are new fields in default_hparams,
-    #   we add them to the current hparams
-    default_config = default_hparams.values()
-    config = hparams.values()
-    for key in default_config:
-        if key not in config:
-            hparams.add_hparam(key,default_config[key])
-
-    # Make sure that the loaded model has latest values for the below keys
-    updated_keys = [
-        "out_dir","num_ckpt_epochs","num_epochs","gpu","batch_size","eval_input_path","eval_target_path",
-        "eval_output_folder","eval_batch_size","predict_batch_size","predictions_filename"
-    ]
-    for key in updated_keys:
-        if key in default_config and getattr(hparams,key) != default_config[key]:
-            print("# Updating hparams.%s: %s -> %s" %
-                            (key,str(getattr(hparams,key)),str(default_config[key])))
-            setattr(hparams,key,default_config[key])
-    return hparams
 
 
 def get_config_proto(log_device_placement=False, allow_soft_placement=True):
