@@ -78,7 +78,7 @@ class RNN(object):
         # Calculate accuracy metric.
         if self.mode != tf.contrib.learn.ModeKeys.INFER:
             self.logits = res[0]
-            correct_pred = tf.equal(tf.argmax(tf.nn.softmax(self.logits), self.logits.get_shape()[-1]-1), tf.cast(self.targets,tf.int64))
+            correct_pred = tf.equal(tf.argmax(tf.nn.softmax(self.logits), len(self.logits.get_shape())-1), tf.cast(self.targets,tf.int64))
             self.accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
         # Saver. As argument, we give the variables that are going to be saved and restored.
         # The Saver op will save the variables of the graph within it is defined. All graphs (train/eval/predict)
