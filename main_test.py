@@ -14,11 +14,15 @@ if __name__ == '__main__':
 
     # Add your data filepaths here.
     # Train data files.
-    params.train_input_path='experiments/data/example_input.txt'
-    params.train_target_path='experiments/data/example_target.txt'
+    #params.train_input_path='experiments/data/example_input.txt'
+    #params.train_target_path='experiments/data/example_target.txt'
+    params.train_input_path = 'experiments/data/train_word_seq.txt'
+    params.train_target_path='experiments/data/train_label_seq.txt'
     # Validation data files.
-    params.val_input_path='experiments/data/example_input.txt'
-    params.val_target_path='experiments/data/example_target.txt'
+    #params.val_input_path='experiments/data/example_input.txt'
+    #params.val_target_path='experiments/data/example_target.txt'
+    params.val_input_path = 'experiments/data/dev_word_seq.txt'
+    params.val_target_path = 'experiments/data/dev_label_seq.txt'
 
     # Let this None. Input file for pretrained embeddings. You don't have to add pretrained embeddings now.
     params.input_emb_file = None
@@ -29,7 +33,7 @@ if __name__ == '__main__':
     # Vocab file does not have to contain the unk and pad symbols.
     # The code will check if unk and pad symbols are the first two words of vocab. If not, they will be added
     # and an extended vocab will be saved in params.out_dir.
-    params.vocab_path='experiments/data/vocab_test.txt'
+    params.vocab_path='experiments/data/train_vocab.txt'
     # What symbols to use for unk and pad.
     params.unk='<unk>'
     params.pad='<pad>'
@@ -43,7 +47,7 @@ if __name__ == '__main__':
     params.num_layers=1
     params.in_to_hidden_dropout=0.1
     # change this based on the number of target classes of your dataset.
-    params.n_classes=3
+    params.n_classes=21
     params.forget_bias=1.0
     params.unit_type='rnn'
     params.emb_size=100
@@ -71,14 +75,17 @@ if __name__ == '__main__':
     # output folder to save evaluation results. Let this None to train a model.
     # If you want to perform evaluation, set a value for params.eval_output_folder such as 'experiments/out_eval'
     params.eval_output_folder=None
-    params.eval_output_folder = 'experiments/out_eval'
+    #params.eval_output_folder = 'experiments/out_eval'
     # Checkpoint filepath to load a trained model.
     params.ckpt =None
     # params.ckpt='experiments/out_model/<CHECKPOINT_NAME>'
 
     # Test data files to run evaluation on.
-    params.eval_input_path='experiments/data/example_input.txt'
-    params.eval_target_path='experiments/data/example_target.txt'
+    #params.eval_input_path='experiments/data/example_input.txt'
+    #params.eval_target_path='experiments/data/example_target.txt'
+    params.eval_input_path = 'experiments/data/test_word_seq.txt'
+    params.eval_target_path = 'experiments/data/test_label_seq.txt'
+
     params.eval_batch_size=64
     params.predict_batch_size=64
     #filename to save predictions on the test set. They will be saved in the eval_output_folder.

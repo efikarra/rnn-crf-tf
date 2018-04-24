@@ -2,6 +2,7 @@ import tensorflow as tf
 import model_helper
 
 
+
 class RNN(object):
 
     def __init__(self, hparams, mode, iterator, input_vocab_table=None):
@@ -25,15 +26,24 @@ class RNN(object):
                                        emb_pretrain=hparams.input_emb_pretrain)
 
         # build graph of rnn model.
-        res = self.build_graph(hparams)
+        #res = self.build_graph(hparams)
+        # Computing the log likelihood using tf.crf function
+        log_likelihood, transition_params, logits = self.build_graph(hparams)
+
+        self.transition_params = transition_params
+
+        # Computing the training loss
         if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
-            self.train_loss = res[1]
+            #self.train_loss = res[1]
+            self.train_loss = tf.reduce_mean(-log_likelihood)
         elif self.mode == tf.contrib.learn.ModeKeys.EVAL:
-            self.eval_loss=res[1]
+            #self.eval_loss=res[1]
+            self.eval_loss = tf.reduce_mean(-log_likelihood)
         if self.mode != tf.contrib.learn.ModeKeys.TRAIN:
             # Generate predictions (for INFER and EVAL mode only)
-            self.logits = res[0]
-            self.predictions = tf.nn.softmax(self.logits)
+            #self.logits = res[0]
+            self.logits = logits
+            #self.predictions = tf.nn.softmax(self.logits)
         ## Learning rate
         print("  start_decay_step=%d, learning_rate=%g, decay_steps %d,"
                   " decay_factor %g" % (hparams.start_decay_step, hparams.learning_rate,
@@ -77,8 +87,12 @@ class RNN(object):
             )
         # Calculate accuracy metric.
         if self.mode != tf.contrib.learn.ModeKeys.INFER:
-            self.logits = res[0]
-            correct_pred = tf.equal(tf.argmax(tf.nn.softmax(self.logits), len(self.logits.get_shape())-1), tf.cast(self.targets,tf.int64))
+            #self.logits = res[0]
+            #correct_pred = tf.equal(tf.argmax(tf.nn.softmax(self.logits), len(self.logits.get_shape())-1), tf.cast(self.targets,tf.int64))
+            self.logits = logits
+            viterbi_sequence, viterbi_score = tf.contrib.crf.crf_decode(self.logits, self.transition_params, self.input_sequence_length)
+            predictions = tf.convert_to_tensor(viterbi_sequence)#, np.float32)
+            correct_pred = tf.equal(predictions, tf.cast(self.targets,tf.int32))
             self.accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
         # Saver. As argument, we give the variables that are going to be saved and restored.
         # The Saver op will save the variables of the graph within it is defined. All graphs (train/eval/predict)
@@ -100,12 +114,16 @@ class RNN(object):
             rnn_outputs, last_hidden_sate = self.build_rnn(hparams)
             # Unnormalized model outputs (before softmax!)
             logits=self.build_output_layer(hparams, rnn_outputs)
+            # Use logits to compute log_likelihood and trans_params, input are rnn output, targets, sequence length
+            log_likelihood, transition_params = tf.contrib.crf.crf_log_likelihood(logits, self.targets, self.input_sequence_length)
             # compute loss
-            if self.mode == tf.contrib.learn.ModeKeys.INFER:
-                loss = None
-            else:
-                loss = self.compute_loss(logits)
-        return logits, loss
+            #if self.mode == tf.contrib.learn.ModeKeys.INFER:
+            #    loss = None
+            #else:
+            #    loss = self.compute_loss(logits)
+        #return logits, loss
+        # return log likelihood, transition params for CRF, and rnn output
+        return log_likelihood, transition_params, logits
 
 
     def build_output_layer(self, hparams, rnn_outputs):
