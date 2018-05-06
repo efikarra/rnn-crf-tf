@@ -6,6 +6,7 @@ import train
 import utils
 import evaluation
 import vocab_utils
+import embedding
 
 
 def add_arguments(parser):
@@ -131,6 +132,8 @@ def create_hparams(flags):
         unit_type=flags.unit_type,
         input_emb_size=flags.emb_size,
         input_emb_trainable=flags.input_emb_trainable,
+        create_new_embeddings=flags.create_new_embeddings,
+        embedding_path=flags.embedding_path,
         out_bias=flags.out_bias,
         # training
         batch_size=flags.batch_size,
@@ -167,6 +170,10 @@ def extend_hparams(hparams):
     # the first two words.
     vocab_size, vocab_path = vocab_utils.check_vocab(hparams.vocab_path, hparams.out_dir,
                                                      unk=hparams.unk, pad=hparams.pad)
+    vocab, _ = vocab_utils.load_vocab(vocab_path)
+    # Generating embeddings if flag is true or file is not present
+    if hparams.create_new_embeddings or os.path.isfile(hparams.input_emb_file) is False:
+        embedding.save_embedding(vocab, hparams.embedding_path, hparams.input_emb_file)
     hparams.add_hparam("vocab_size",vocab_size)
     hparams.set_hparam("vocab_path",vocab_path)
     if not tf.gfile.Exists(hparams.out_dir):

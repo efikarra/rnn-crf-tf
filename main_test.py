@@ -1,5 +1,6 @@
 import main
 import argparse
+import embedding
 
 
 
@@ -25,7 +26,8 @@ if __name__ == '__main__':
     params.val_target_path = 'experiments/data/dev_label_seq.txt'
 
     # Let this None. Input file for pretrained embeddings. You don't have to add pretrained embeddings now.
-    params.input_emb_file = None
+    # params.input_emb_file = None
+    params.input_emb_file = 'experiments/data/embedding.txt'
     # Hparams filepath if you want to parse hyperparameters from an external file.
     params.hparams_path = None
 
@@ -34,6 +36,10 @@ if __name__ == '__main__':
     # The code will check if unk and pad symbols are the first two words of vocab. If not, they will be added
     # and an extended vocab will be saved in params.out_dir.
     params.vocab_path='experiments/data/train_vocab.txt'
+
+    # Checking if new embeddings need to be created
+    params.create_new_embeddings = True
+    params.embedding_path = '/Users/abhishekjindal/Downloads/glove.840B.300d.txt'
     # What symbols to use for unk and pad.
     params.unk='<unk>'
     params.pad='<pad>'
@@ -50,7 +56,7 @@ if __name__ == '__main__':
     params.n_classes=21
     params.forget_bias=1.0
     params.unit_type='rnn'
-    params.emb_size=100
+    params.emb_size=300
     params.input_emb_trainable = True
     params.out_bias=True
     # training
