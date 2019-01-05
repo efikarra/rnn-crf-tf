@@ -1,0 +1,155 @@
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/h5py/__init__.py:36: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from ._conv import register_converters as _register_converters
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/h5py/__init__.py:45: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from . import h5a, h5d, h5ds, h5f, h5fd, h5g, h5r, h5s, h5t, h5p, h5z
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/h5py/_hl/group.py:22: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from .. import h5g, h5i, h5o, h5r, h5t, h5l, h5p
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/sparse/lil.py:16: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from . import _csparsetools
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/linalg/basic.py:17: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from ._solve_toeplitz import levinson
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/linalg/__init__.py:202: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from ._decomp_update import *
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/special/__init__.py:640: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from ._ufuncs import *
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/special/_ellip_harm.py:7: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from ._ellip_harm_2 import _ellipsoid, _ellipsoid_norm
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/optimize/_trlib/__init__.py:1: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from ._trlib import TRLIBQuadraticSubproblem
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/optimize/_numdiff.py:8: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from ._group_columns import group_dense, group_sparse
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/interpolate/_bsplines.py:9: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from . import _bspl
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/spatial/__init__.py:94: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from .ckdtree import *
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/spatial/__init__.py:95: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from .qhull import *
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/spatial/_spherical_voronoi.py:18: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from . import _voronoi
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/spatial/distance.py:121: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from . import _hausdorff
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/ndimage/measurements.py:36: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from . import _ni_label
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/_libs/__init__.py:4: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from .tslib import iNaT, NaT, Timestamp, Timedelta, OutOfBoundsDatetime
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/__init__.py:26: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from pandas._libs import (hashtable as _hashtable,
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/core/dtypes/common.py:6: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from pandas._libs import algos, lib
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/core/util/hashing.py:7: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from pandas._libs import hashing, tslib
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/core/indexes/base.py:7: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from pandas._libs import (lib, index as libindex, tslib as libts,
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/tseries/offsets.py:21: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  import pandas._libs.tslibs.offsets as liboffsets
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/core/ops.py:16: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from pandas._libs import algos as libalgos, ops as libops
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/core/indexes/interval.py:32: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from pandas._libs.interval import (
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/core/internals.py:14: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from pandas._libs import internals as libinternals
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/core/sparse/array.py:33: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  import pandas._libs.sparse as splib
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/core/window.py:36: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  import pandas._libs.window as _window
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/core/groupby/groupby.py:68: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from pandas._libs import (lib, reduction,
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/core/reshape/reshape.py:30: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from pandas._libs import algos as _algos, reshape as _reshape
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/io/parsers.py:45: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  import pandas._libs.parsers as parsers
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pandas/io/pytables.py:50: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from pandas._libs import algos, lib, writers as libwriters
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sklearn/utils/__init__.py:10: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from .murmurhash import murmurhash3_32
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/scipy/stats/_continuous_distns.py:17: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from . import _stats
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sklearn/utils/extmath.py:24: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from ._logistic_sigmoid import _log_logistic_sigmoid
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sklearn/utils/extmath.py:26: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from .sparsefuncs_fast import csr_row_norms
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sklearn/metrics/cluster/supervised.py:23: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from .expected_mutual_info_fast import expected_mutual_information
+/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/sklearn/metrics/pairwise.py:30: RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
+  from .pairwise_fast import _chi2_kernel_fast, _sparse_manhattan
+2019-01-05 14:00:25.546253: I tensorflow/core/platform/cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+ Vocab file ../data/train_vocab.txt exists 
+The first 2 vocab words [@SammieLynnsMom, @tg10781] are not [<unk>, <pad>].
+Vocabulary was extended to include [<unk>, <pad>] and the extended file was saved to ../results/train_vocab.txt.
+('Length of Word embeddings:', 2196016)
+  saving hparams to ../results/hparams
+Print hyperparameters:
+  batch_size=64
+  ckpt=None
+  colocate_gradients_with_ops=True
+  create_new_embeddings=True
+  decay_factor=0.98
+  decay_steps=10000
+  embedding_path=../data/embeddings/glove.840B.300d.txt
+  eval_batch_size=4
+  eval_input_path=../data/test_word_seq.txt
+  eval_output_folder=../results
+  eval_target_path=../data/test_label_seq.txt
+  forget_bias=1.0
+  gpu=6
+  hparams_path=None
+  in_to_hidden_dropout=0.1
+  init_weight=0.1
+  input_emb_file=../data/embedding.txt
+  input_emb_pretrain=True
+  input_emb_size=300
+  input_emb_trainable=True
+  input_max_len=None
+  learning_rate=0.01
+  log_device_placement=False
+  max_gradient_norm=3.0
+  model_architecture=simple_rnn
+  n_classes=21
+  num_ckpt_epochs=1
+  num_epochs=5
+  num_layers=1
+  num_units=64
+  optimizer=adam
+  out_bias=True
+  out_dir=../results
+  pad=<pad>
+  predict_batch_size=32
+  predictions_filename=predictions.txt
+  random_seed=None
+  start_decay_step=0
+  timeline=False
+  train_input_path=None
+  train_target_path=None
+  unit_type=rnn
+  unk=<unk>
+  val_input_path=None
+  val_target_path=None
+  vocab_path=../results/train_vocab.txt
+  vocab_size=8548
+Starting evaluation and predictions:
+Creating eval graph
+  start_decay_step=0, learning_rate=0.01, decay_steps 10000, decay_factor 0.98
+# Trainable variables
+  embeddings/embedding:0, (8548, 300)
+  rnn_model/rnn/rnn/basic_rnn_cell/kernel:0, (364, 64)
+  rnn_model/rnn/rnn/basic_rnn_cell/bias:0, (64,)
+  rnn_model/output_layer/output_layer/kernel:0, (64, 21)
+  rnn_model/output_layer/output_layer/bias:0, (21,)
+  rnn_model/transitions:0, (21, 21)
+Total number of parameters: 2589566
+loaded evaluation model parameters from ../results/rnn.ckpt-5, time 0.10s
+Eval loss: 9.196, Eval accuracy: 0.903
+Saving transition parameters:
+Saving predictions:
+Traceback (most recent call last):
+  File "main.py", line 238, in <module>
+    tf.app.run(main=main(flags), argv=[sys.argv[0]] + unparsed)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/platform/app.py", line 126, in run
+    _sys.exit(main(argv))
+  File "main.py", line 226, in main
+    default_hparams = create_hparams(flags)
+  File "main.py", line 114, in create_hparams
+    input_emb_file=flags.input_emb_file,
+AttributeError: 'list' object has no attribute 'input_emb_file'
